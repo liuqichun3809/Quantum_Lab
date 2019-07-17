@@ -5,18 +5,18 @@ QuLab 需要在 Jupyter Notebook 中使用。
 
 ## 准备工作
 
-1. 安装 MongoDB，用于存储数据、历史代码、仪器配置、用户信息。
-2. 制作 ssl 证书，用于 InstrumentServer 加密。
+1. 安装 MongoDB，用于存储数据、历史代码、仪器配置、用户信息（必须）。
+2. 制作 ssl 证书，用于 InstrumentServer 加密（非必须，和配置文件SSL项对应）。
 
 ## 安装
 
 ```bash
-python -m pip install QuLab
+python -m pip install quantum-lab
 ```
 或者
 ```bash
-git clone https://github.com/feihoo87/QuLab.git
-cd QuLab
+git clone https://github.com/liuqichun3809/quantum-lab.git
+cd quantum-lab
 python -m pip install .
 ```
 
@@ -26,11 +26,11 @@ python -m pip install .
 ca_cert: &ca_cert /path/to/CACert/ca.pem
 
 db:
-  db: lab
+  db: qulab
   host: [10.122.7.18, 10.122.7.19, 10.122.7.20]
-  username: lab_admin
-  password: 'lab_password'
-  authentication_source: lab
+  username: qulab_admin
+  password: 'qulab_password'
+  authentication_source: qulab
   replicaSet: rs0
   ssl: true
   ssl_ca_certs: *ca_cert
@@ -49,15 +49,15 @@ ssl:
 ### 创建初始用户
 
 ```python
-from lab.admin import register
+from qulab.admin import register
 register()
 ```
 
 ### 登陆系统
 
 ```python
-import lab
-lab.login()
+import qulab
+qulab.login()
 ```
 
 ### 创建并运行简单 App
@@ -67,9 +67,9 @@ lab.login()
 ```python
 import numpy as np
 import asyncio
-import lab
+import qulab
 
-class TestApp(lab.Application):
+class TestApp(qulab.Application):
     '''一个简单的 App'''
     async def work(self):
         async for x in self.sweep['x']:
@@ -93,13 +93,13 @@ TestApp.save(package='test')
 ```
 一旦将App提交到数据库，以后就不必重复将代码复制过来运行了。直接配置并运行即可。
 ```python
-import lab
+import qulab
 import numpy as np
 
 app = lab.make_app('TestApp', package='test').sweep([
     ('x', np.linspace(0, 1, 11))
 ])
-lab.make_figure_for_app(app)
+qulab.make_figure_for_app(app)
 app.run()
 ```
 
@@ -108,14 +108,14 @@ app.run()
 ```python
 import numpy as np
 import asyncio
-import lab
+import qulab
 
 class ComplexApp(lab.Application):
     '''一个复杂点的 App'''
     async def work(self):
         async for y in self.sweep['y']:
             # 一定要注意设置 parent
-            app = lab.make_app('test.TestApp', parent=self)
+            app = qulab.make_app('test.TestApp', parent=self)
             x, z = await app.done()
             yield x, y, z
 
@@ -147,15 +147,15 @@ ComplexApp.save(package='test')
 运行
 
 ```python
-import lab
+import qulab
 import numpy as np
 
-app = lab.make_app('ComplexApp', package='test').sweep([
+app = qulab.make_app('ComplexApp', package='test').sweep([
     ('x', np.linspace(0, 1, 11)),
     ('y', np.linspace(3,5,11))
 ])
-lab.make_figure_for_app(app)
-lab.make_figures_for_App('TestApp')
+qulab.make_figure_for_app(app)
+qulab.make_figures_for_App('TestApp')
 app.run()
 ```
 
@@ -168,33 +168,33 @@ import os
 path = 'path/to/drivers'
 
 for f in os.listdir(path):
-    lab.admin.uploadDriver(os.path.join(path, f))
+    qulab.admin.uploadDriver(os.path.join(path, f))
 ```
 
 2. 查看已有的 drivers
 ```python
-lab.listDrivers()
+qulab.listDrivers()
 ```
 
 3. 添加仪器设置
 ```python
 # 第一台网分
-lab.admin.setInstrument('PNA-I', 'localhost', 'TCPIP::10.122.7.250', 'NetworkAnalyzer')
+qulab.admin.setInstrument('PNA-I', 'localhost', 'TCPIP::10.122.7.250', 'NetworkAnalyzer')
 # 第二台网分
-lab.admin.setInstrument('PNA-II', 'localhost', 'TCPIP::10.122.7.251', 'NetworkAnalyzer')
+qulab.admin.setInstrument('PNA-II', 'localhost', 'TCPIP::10.122.7.251', 'NetworkAnalyzer')
 ```
 
 4. 查看已存在的仪器
 
 ```python
-lab.listInstruments()
+qulab.listInstruments()
 ```
 
 定义 App
 ```python
 import numpy as np
 import skrf as rf
-from lab import Application
+from qulab import Application
 
 
 class S21(Application):
@@ -238,7 +238,7 @@ S21.save(package='PNA')
 ```
 运行
 ```python
-import lab
+import qulab
 
 app = lab.make_app('PNA.S21').with_rc({
     'PNA': 'PNA-II'     # PNA-II 必须是已经添加到数据库里的设备名
@@ -249,7 +249,7 @@ app = lab.make_app('PNA.S21').with_rc({
     att = [-30, 'dB']
 ).with_tags('5 bits sample', 'Cavity 1')
 
-lab.make_figure_for_app(app)
+qulab.make_figure_for_app(app)
 
 app.run()
 ```
@@ -258,19 +258,19 @@ app.run()
 
 查看已有的 App
 ```python
-lab.listApps()
+qulab.listApps()
 ```
 
 查询数据
 ```python
-results = lab.query()
+results = qulab.query()
 results.display()
 ```
 
 获取原始数据
 
 ```python
-res = lab.query(app='TestApp')
+res = qulab.query(app='TestApp')
 x,y = res[0].data
 
 import matplotlib.pyplot as plt
