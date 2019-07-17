@@ -41,7 +41,7 @@ setup(
     version=__version__,
     author="LQC",
     author_email="liuqichun3809@163.com",
-    url="https://github.com/liuqichun3809/quantum-lab",
+    url="https://github.com/liuqichun3809/Quantum_Lab",
     license = "MIT",
     keywords="experiment laboratory",
     description="contral instruments and manage data",
@@ -66,7 +66,7 @@ setup(
         'Programming Language :: Python :: 3.6',
     ],
     project_urls={  # Optional
-        'Bug Reports': 'https://github.com/liuqichun3809/quantum-lab/issues',
-        'Source': 'https://github.com/liuqichun3809/quantum-lab/',
+        'Bug Reports': 'https://github.com/liuqichun3809/Quantum_Lab/issues',
+        'Source': 'https://github.com/liuqichun3809/Quantum_Lab/',
     },
 )
