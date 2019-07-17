@@ -37,7 +37,7 @@ if platform.system() == 'Windows':
     ])
 
 setup(
-    name="quantum-lab",
+    name="Quantum_Lab",
     version=__version__,
     author="LQC",
     author_email="liuqichun3809@163.com",
