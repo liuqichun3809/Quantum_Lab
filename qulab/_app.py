@@ -1,0 +1,530 @@
+import abc
+import asyncio
+import datetime
+import functools
+import importlib
+import os
+import sys
+import time
+import tokenize
+import copy
+from collections import Awaitable, Iterable, OrderedDict
+from concurrent.futures import ProcessPoolExecutor, ThreadPoolExecutor
+from threading import Thread
+
+import numpy as np
+
+from . import db
+from ._bootstrap import get_current_user, open_resource, save_inputCells
+from ._plot import draw
+from ._rcmap import RcMap
+from .base import HasSource
+from .ui import ApplicationUI, display_source_code
+
+
+class Application(HasSource):
+    """Base class for apps."""
+
+    __source__ = ''
+    __DBDocument__ = None
+
+    def __init__(self, parent=None):
+        self.parent = parent
+        self.rc = RcMap()
+        self.data = DataCollector(self)
+        self.settings = {}
+        self.params = {}
+        self.tags = []
+        self.sweep = SweepSet(self)
+        self.status = None
+        self.ui = None
+        self.reset_status()
+        self.level = 1
+        self.level_limit = 1
+        self.run_event = asyncio.Event()
+        self.interrupt_event = asyncio.Event()
+        self.__title = None
+        self._setUp = lambda : None
+        self._tearDown = lambda : None
+
+        if parent is not None:
+            self.rc.parent = parent.rc
+            self.settings.update(parent.settings)
+            self.params.update(parent.params)
+            self.params.update(parent.status['current_params'])
+            self.tags.extend(parent.tags)
+            self.level = parent.level + 1
+            self.level_limit = parent.level_limit
+            self.run_event = parent.run_event
+            self.interrupt_event = parent.interrupt_event
+            #parent.status['sub_process_num'] += 1
+
+    def __del__(self):
+        if self.parent is not None:
+            #self.parent.status['sub_process_num'] -= 1
+            pass
+
+    def reset(self):
+        self.reset_status()
+        self.data.clear()
+        # self.ui.reset()
+
+    def title(self):
+        if self.__title is not None:
+            return self.__title
+        return 'Record by %s (v%s)' % (self.__DBDocument__.fullname,
+                                       self.__DBDocument__.version.text)
+
+    def with_title(self, title=''):
+        self.__title = title
+        return self
+
+    def reset_status(self):
+        self.status = dict(
+            current_record=None,
+            current_params={},
+            last_step_process=0,
+            sub_process_num=0,
+            process_changed_by_children=False,
+            process=0.0,
+            done=False,
+        )
+
+    def getTotalProcess(self):
+        if self.parent is None:
+            return 100.0
+        else:
+            return self.parent.status['last_step_process'] / max(
+                self.parent.status['sub_process_num'], 1)
+
+    def processToChange(self, delta):
+        self.status['last_step_process'] = delta
+
+    def increaseProcess(self, value=0, by_children=False):
+        if not self.status['process_changed_by_children']:
+            value = self.status['last_step_process']
+            self.status['process'] += value
+        elif by_children:
+            self.status['process'] += value
+        if self.parent is not None:
+            self.parent.status['process_changed_by_children'] = True
+            self.parent.increaseProcess(
+                value * self.getTotalProcess() / 100, by_children=True)
+        if self.ui is not None:
+            self.ui.setProcess(self.status['process'])
+
+    def with_rc(self, rc={}):
+        self.rc.update(rc)
+        return self
+
+    def with_tags(self, *tags):
+        for tag in tags:
+            if tag not in self.tags:
+                self.tags.append(tag)
+        return self
+
+    def with_params(self, **kwargs):
+        params = dict([(name, [v[0], v[1]])
+                       if isinstance(v, (list, tuple)) else (name, [v, ''])
+                       for name, v in kwargs.items()])
+        self.params.update(params)
+        return self
+
+    def with_settings(self, settings={}):
+        self.settings.update(settings)
+        return self
+
+    def is_done(self):
+        return self.status['done']
+
+    def _set_start(self):
+        if self.parent is not None:
+            self.parent.status['sub_process_num'] += 1
+        self.run_event.set()
+        if self.ui is not None:
+            self.ui.set_start()
+            asyncio.ensure_future(self.start_timing(self.ui.setUsedTime))
+
+    def _set_done(self):
+        if self.parent is not None:
+            self.parent.status['sub_process_num'] -= 1
+        self.status['done'] = True
+        if self.ui is not None:
+            if not self.interrupt_event.is_set():
+                self.ui.set_done()
+            if self.parent is None:
+                self.interrupt_event.set()
+
+    def run(self, block=False):
+        if self.ui is None:
+            self.ui = ApplicationUI(self)
+            self.ui.display()
+        loop = asyncio.get_event_loop()
+        if loop.is_running():
+            future = asyncio.ensure_future(self.done())
+            if block:
+                while not future.done():
+                    time.sleep(1)
+        else:
+            with ThreadPoolExecutor() as executor:
+                loop = asyncio.new_event_loop()
+                asyncio.set_event_loop(loop)
+                loop.set_default_executor(executor)
+                tasks = [asyncio.ensure_future(self.done())]
+                loop.run_until_complete(asyncio.wait(tasks))
+                loop.close()
+        save_inputCells()
+
+    def pause(self):
+        self.run_event.clear()
+
+    def continue_(self):
+        self.run_event.set()
+
+    def interrupt(self):
+        self.interrupt_event.set()
+
+    def restart(self):
+        self.interrupt_event.clear()
+        self.run()
+
+    async def start_timing(self, handler):
+        start_time = datetime.datetime.now()
+        while not self.interrupt_event.is_set():
+            await asyncio.sleep(1)
+            handler(datetime.datetime.now() - start_time)
+
+    async def done(self):
+        self.reset()
+        self._set_start()
+        self._setUp()
+        async for data in self.work():
+            self.data.collect(data)
+            result = self.data.result()
+            if self.level <= self.level_limit:
+                self.data.save()
+            draw(self.__class__.plot, result, self)
+            if self.interrupt_event.is_set():
+                break
+            await self.run_event.wait()
+        self._set_done()
+        self._tearDown()
+        return self.data.result()
+
+    def setUp(self, f):
+        self._setUp = f
+        return self
+
+    def tearDown(self, f):
+        self._tearDown = f
+        return self
+
+    async def work(self):
+        """Overwrite this method to define your work.
+
+        单个返回值不要用 tuple，否则会被解包，下面这些都允许
+        yield 0
+        yield 0, 1, 2
+        yield np.array([1,2,3])
+        yield [1,2,3]
+        yield 1, (1,2)
+        yield 0.5, np.array([1,2,3])
+        """
+
+    def pre_save(self, *args):
+        return args
+
+    def copy(self):
+        app_copy=self.__class__()
+        app_copy.parent = copy.deepcopy(self.parent)
+        app_copy.rc = copy.deepcopy(self.rc)
+        # app_copy.data = self.data
+        app_copy.settings = copy.deepcopy(self.settings)
+        app_copy.params = copy.deepcopy(self.params)
+        app_copy.tags = copy.deepcopy(self.tags)
+        app_copy.sweep = self.sweep #deepcopy fail
+        # app_copy.status = self.status
+        # app_copy.ui = self.ui
+        # app_copy.reset_status() = self.reset_status()
+        # app_copy.level = self.level
+        # app_copy.level_limit = self.level_limit
+        # app_copy.run_event = self.run_event
+        # app_copy.interrupt_event = self.interrupt_event
+        # app_copy.__title = self.__title
+        app_copy._setUp = copy.deepcopy(self._setUp)
+        app_copy._tearDown = copy.deepcopy(self._tearDown)
+        return app_copy
+
+    def inherit(self,app,*args):
+        if not isinstance(app,Application):
+            raise IOError('app class error!')
+        if not args:
+            args = ('rc','settings','params','tags')
+        for attr in args:
+            if hasattr(self,attr):
+                try:
+                    value=copy.deepcopy(getattr(app,attr))
+                except:
+                    value=getattr(app,attr)
+                setattr(self,attr,value)
+            else:
+                raise IOError('no attr : %s' %attr)
+        return self
+
+    @staticmethod
+    def plot(fig, data):
+        '''用于App中即时画图'''
+        pass
+
+    @classmethod
+    def image(cls, fig, data, option=0):
+        '''快速画图的方法：用于数据处理阶段，事先定义，格式化输出图片；
+        很有必要！在数据库record类里定义调用的方法;
+        option: 选项参数'''
+        # 默认使用上面的 plot
+        if option == 0:
+            cls.plot(fig, data)
+
+    @classmethod
+    def save(cls, version=None, package=''):
+        """Save Application into database."""
+        db.update.saveApplication(cls.__name__, cls.__source__,
+                                  get_current_user(), package, cls.__doc__,
+                                  version)
+
+
+class DataCollector:
+    '''Collect data when app runs'''
+
+    def __init__(self, app):
+        self.app = app
+        self.clear()
+
+    def clear(self):
+        self.__data = None
+        self.__rows = 0
+        self.__cols = 0
+        self.__record = None
+
+    @property
+    def cols(self):
+        return self.__cols
+
+    @property
+    def rows(self):
+        return self.__rows
+
+    def collect(self, data):
+        '''对于存在循环的实验，将每一轮生成的数据收集起来'''
+        if not isinstance(data, tuple):
+            data = (data, )
+        if self.__data is None:
+            self.__data = [[v] for v in data]
+            self.__cols = len(data)
+            self.__rows = 1
+        else:
+            for i, v in enumerate(data):
+                self.__data[i].append(v)
+            self.__rows += 1
+
+    def result(self):
+        '''将收集到的数据按 work 生成时的顺序返回'''
+        if self.__rows == 1:
+            data = tuple([v[0] for v in self.__data])
+        else:
+            data = tuple([np.array(v) for v in self.__data])
+        if self.__cols == 1:
+            return self.app.pre_save(data[0])
+        else:
+            return self.app.pre_save(*data)
+
+    def save(self):
+        if self.__record is None:
+            self.__record = self.newRecord()
+        self.__record.set_data(self.result())
+        self.__record.save(signal_kwargs=dict(finished=True))
+
+    def newRecord(self):
+        rc = dict([(name, str(v)) for name, v in self.app.rc.items()])
+        record = db.update.newRecord(
+            title=self.app.title(),
+            user=get_current_user(),
+            settings=self.app.settings,
+            tags=self.app.tags,
+            params=self.app.params,
+            # setup=self._setUp,
+            # teardown=self._tearDown,
+            rc=rc,
+            hidden=False if self.app.parent is None else True,
+            app=self.app.__DBDocument__,
+        )
+        #self.status['current_record'] = record
+        if self.app.parent is not None:
+            self.app.parent.data.addSubRecord(record)
+        return record
+
+    def addSubRecord(self, record):
+        if self.__record is not None:
+            if record.id is None:
+                record.save(signal_kwargs=dict(finished=True))
+            self.__record.children.append(record)
+            self.__record.save(signal_kwargs=dict(finished=True))
+
+
+class Sweep:
+    """Sweep
+
+    Sweep channal config.
+    """
+
+    def __init__(self,
+                 name,
+                 generator,
+                 unit='',
+                 setter=None,
+                 start=None,
+                 total=None):
+        self.name = name
+        self.generator = generator
+        self.unit = unit
+        self.setter = setter
+        self.start = start
+        self.total = total
+        self._generator = self.generator
+
+    def __call__(self, *args, **kwds):
+        self._generator = self._generator(*args, **kwds)
+        return self
+
+    def __len__(self):
+        try:
+            return len(self._generator)
+        except TypeError:
+            return self.total
+
+    def __iter__(self):
+        return SweepIter(self)
+
+    def __aiter__(self):
+        return SweepIter(self)
+
+
+class SweepIter:
+    def __init__(self, sweep):
+        self.iter = sweep._generator.__iter__() if isinstance(
+            sweep._generator, Iterable) else sweep._generator
+        self.app = sweep.parent.app
+        self.setter = sweep.setter
+        self.name = sweep.name
+        self.unit = sweep.unit
+        self.length = len(sweep)
+
+    def fetch_data(self):
+        try:
+            data = next(self.iter)
+        except StopIteration:
+            raise StopAsyncIteration
+        return data
+
+    def __next__(self):
+        return next(self.iter)
+
+    async def set_data(self, data):
+        if self.setter is not None:
+            ret = self.setter(data)
+        elif self.app is not None and hasattr(self.app, 'set_%s' % self.name):
+            ret = getattr(self.app, 'set_%s' % self.name).__call__(data)
+        else:
+            print(self.name, 'not set', self.app.__class__.__name__)
+            return
+        if isinstance(ret, Awaitable):
+            await ret
+
+    async def __anext__(self):
+        if self.app is not None:
+            self.app.increaseProcess()
+        data = self.fetch_data()
+        await self.set_data(data)
+        if self.app is not None:
+            self.app.status['current_params'][self.name] = [
+                float(data), self.unit
+            ]
+            if self.length is not None:
+                self.app.processToChange(100.0 / self.length)
+        return data
+
+
+class SweepSet:
+    """Container of sweep channals."""
+
+    def __init__(self, app):
+        self.app = app
+        self._sweep = {}
+        if app.parent is not None:
+            self.__call__(app.parent.sweep._sweep.values())
+
+    def __getitem__(self, name):
+        return self._sweep[name]
+
+    def __call__(self, sweeps=[]):
+        for args in sweeps:
+            if isinstance(args, tuple):
+                sweep = Sweep(*args)
+            elif isinstance(args, dict):
+                sweep = Sweep(**args)
+            elif isinstance(args, Sweep):
+                sweep = Sweep(args.name, args.generator, args.unit,
+                              args.setter, args.start, args.total)
+            else:
+                raise TypeError('Unsupport type %r for sweep.' % type(args))
+            sweep.parent = self
+            self._sweep[sweep.name] = sweep
+        return self.app
+
+
+def getAppClass(name='', package='', version=None, id=None, **kwds):
+    appdata = db.query.getApplication(name, package, version, id, **kwds)
+    if appdata is None:
+        return None
+    mod = importlib.import_module(appdata.module.fullname)
+    app_cls = getattr(mod, appdata.name)
+    app_cls.__DBDocument__ = appdata
+    app_cls.__source__ = appdata.source
+    return app_cls
+
+
+def make_app(name, package='', version=None, parent=None):
+    app_cls = getAppClass(name, package, version)
+    return app_cls(parent=parent)
+
+
+def exportApps(dist_path):
+    """Export the latest version of Applications."""
+    from lab.db.utils import beforeSaveFile
+    ret = db.query.listApplication()
+    for app in ret:
+        path = os.path.join(dist_path, *app.package.split('.'),
+                            app.name + '.py')
+        beforeSaveFile(path)
+        with open(path, 'wt', encoding='utf-8') as f:
+            f.write(app.source)
+
+
+def importApps(sour_path, package=''):
+    """Import all Applications in the given path."""
+    for fname in os.listdir(sour_path):
+        path = os.path.join(sour_path, fname)
+        if os.path.isdir(path):
+            importApps(
+                path,
+                package=fname if package == '' else package + '.' + fname)
+        else:
+            with open(path, 'rt', encoding='utf-8') as f:
+                source = f.read()
+            namespace = {}
+            exec(source, namespace)
+            class_name, _ = os.path.splitext(fname)
+            cls = namespace[class_name]
+            db.update.saveApplication(class_name, source, get_current_user(),
+                                      package, cls.__doc__)
+            print('%40s, %s' % (package, class_name))
