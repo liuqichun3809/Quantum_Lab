@@ -1,7 +1,7 @@
 # quantum-lab
 [![View build status](https://github.com/liuqichun3809/quantum-lab)
 
-QuLab 需要在 Jupyter Notebook 中使用。
+quantum-lab 需要在 Jupyter Notebook 中使用。
 
 ## 准备工作
 
