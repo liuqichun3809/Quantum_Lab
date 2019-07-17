@@ -1,5 +1,7 @@
 # quantum-lab
-[![View build status](https://github.com/liuqichun3809/quantum-lab)
+[https://github.com/liuqichun3809/quantum-lab]
+
+quantum-lab继承于QuLab[https://github.com/feihoo87/QuLab/]
 
 quantum-lab 需要在 Jupyter Notebook 中使用。
 
