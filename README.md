@@ -1,5 +1,5 @@
-# QuLab
-[![View build status](https://travis-ci.org/feihoo87/QuLab.svg?branch=master)](https://travis-ci.org/feihoo87/QuLab)
+# quantuml-ab
+[![View build status](https://github.com/liuqichun3809/quantum-lab)
 
 QuLab 需要在 Jupyter Notebook 中使用。
 
