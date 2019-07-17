@@ -1,9 +1,9 @@
-# quantum-lab
-[https://github.com/liuqichun3809/quantum-lab]
+# Quantum_Lab
+[https://github.com/liuqichun3809/Quantum_Lab]
 
-quantum-lab继承于QuLab[https://github.com/feihoo87/QuLab/]
+Quantum_Lab 继承于 QuLab[https://github.com/feihoo87/QuLab/]
 
-quantum-lab 需要在 Jupyter Notebook 中使用。
+Quantum_Lab 需要在 Jupyter Notebook 中使用。
 
 ## 准备工作
 
@@ -13,12 +13,12 @@ quantum-lab 需要在 Jupyter Notebook 中使用。
 ## 安装
 
 ```bash
-python -m pip install quantum-lab
+python -m pip install Quantum_Lab
 ```
 或者
 ```bash
-git clone https://github.com/liuqichun3809/quantum-lab.git
-cd quantum-lab
+git clone https://github.com/liuqichun3809/Quantum_Lab.git
+cd Quantum_Lab
 python -m pip install .
 ```
 
