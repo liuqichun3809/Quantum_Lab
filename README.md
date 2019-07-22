@@ -7,7 +7,7 @@ Quantum_Lab 需要在 Jupyter Notebook 中使用。
 
 ## 准备工作
 
-1. 安装1111 MongoDB，用于存储数据、历史代码、仪器配置、用户信息（必须）。
+1. 安装 MongoDB，用于存储数据、历史代码、仪器配置、用户信息（必须）。
 2. 制作 ssl 证书，用于 InstrumentServer 加密（非必须，和配置文件SSL项对应）。
 
 ## 安装
