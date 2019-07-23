@@ -5,27 +5,27 @@ from pathlib import Path
 
 import yaml
 
-CONFIG_DIRNAME = 'QuLab'
+CONFIG_DIRNAME = 'Quantum_Lab'
 CONFIG_FILENAME = 'config.yaml'
 CACHES_DIRNAME = 'caches'
 LOG_DIRNAME = 'logs'
-DEFAULT_CONFIG = {'db': {'db': 'lab', 'host': 'localhost'}}
+DEFAULT_CONFIG = {'db': {'db': 'qulab', 'host': 'localhost'}}
 CONFIG_TEMPLATE = '''
 ca_cert: &ca_cert '{cfg_path}/ca.pem'
 
 db:
-  db: lab
+  db: qulab
   host: [10.122.7.18, 10.122.7.19, 10.122.7.20]
   username: {db_user}
   password: '{db_password}'
-  authentication_source: lab
+  authentication_source: qulab
   replicaSet: rs0
   ssl: true
   ssl_ca_certs: *ca_cert
   ssl_match_hostname: true
 
 db_dev:
-  db: lab_dev
+  db: qulab_dev
   host: localhost
 
 server_port: 8123

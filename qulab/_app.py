@@ -500,7 +500,7 @@ def make_app(name, package='', version=None, parent=None):
 
 def exportApps(dist_path):
     """Export the latest version of Applications."""
-    from lab.db.utils import beforeSaveFile
+    from qulab.db.utils import beforeSaveFile
     ret = db.query.listApplication()
     for app in ret:
         path = os.path.join(dist_path, *app.package.split('.'),

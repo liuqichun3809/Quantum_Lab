@@ -81,7 +81,7 @@ def saveApplication(name,
     codeSnippet = makeUniqueCodeSnippet(source, author)
     name, package = __get_App_name_and_package(name, package)
 
-    fullname = 'lab.apps.codeID%s' % codeSnippet.id
+    fullname = 'qulab.apps.codeID%s' % codeSnippet.id
 
     module = makeUniqueModule(fullname, author, codeSnippet)
     if module.id is None:

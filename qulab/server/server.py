@@ -50,7 +50,7 @@ class InstrumentServer:
 def main():
     import ssl
     import os
-    from lab._bootstrap import connect_db
+    from qulab._bootstrap import connect_db
 
     cookie_secret = base64.urlsafe_b64encode(ssl.RAND_bytes(32)).decode()
 

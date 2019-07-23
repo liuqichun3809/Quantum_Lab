@@ -5,7 +5,7 @@ Created on Sat May 18 13:57:33 2019
 @author: csrc
 """
 
-import lab
+import qulab
 #import AWGboard, Waveform
 import Waveform, AWGboard
 
