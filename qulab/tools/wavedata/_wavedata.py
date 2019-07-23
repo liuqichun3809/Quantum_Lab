@@ -2,10 +2,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy import interpolate
 from scipy.fftpack import fft,ifft
-from scipy.signal import chirp,sweep_poly
 
-__all__ = ['Wavedata', 'Blank', 'DC', 'Triangle', 'Gaussian', 'CosPulse', 'Sin',
-    'Cos', 'Sinc', 'Interpolation', 'Chirp', 'Sweep_poly']
 
 class Wavedata(object):
 
@@ -31,10 +28,10 @@ class Wavedata(object):
         data = cls.generateData(timeFunc,domain,sRate)
         return cls(data,sRate)
 
-    def _blank(self,length=0):
-        n = np.around(abs(length)*self.sRate).astype(int)
-        data = np.zeros(n)
-        return data
+    @property
+    def isIQ(self):
+        '''是否为IQ类型 即data是否包含复数'''
+        return np.any(np.iscomplex(self.data))
 
     @property
     def x(self):
@@ -42,6 +39,22 @@ class Wavedata(object):
         dt=1/self.sRate
         x = np.arange(dt/2, self.len, dt)
         return x
+
+    @property
+    def real(self):
+        '''data实部'''
+        return np.real(self.data)
+
+    @property
+    def imag(self):
+        '''data虚部'''
+        return np.imag(self.data)
+
+    @property
+    def f(self): # 支持复数与timeFunc一致
+        '''返回根据属性data进行cubic类型插值得到的时间函数'''
+        f = self.timeFunc(kind='cubic')
+        return f
 
     @property
     def len(self):
@@ -54,6 +67,51 @@ class Wavedata(object):
         '''返回波形点数'''
         size = len(self.data)
         return size
+
+    def I(self):
+        '''I波形 返回Wavedata类'''
+        w = self.__class__(np.real(self.data), self.sRate)
+        return w
+
+    def Q(self):
+        '''Q波形 返回Wavedata类'''
+        w = self.__class__(np.imag(self.data), self.sRate)
+        return w
+
+    def trans(self,mode='real'):
+        '''对于IQ波形转化成其他几种格式'''
+        if mode in ['amp','abs']: #振幅或绝对值
+            data = np.abs(self.data)
+        elif mode in ['phase','angle']: #相位或辐角
+            data = np.angle(self.data,deg=True)
+        elif mode == 'real': #实部
+            data = np.real(self.data)
+        elif mode == 'imag': #虚部
+            data = np.imag(self.data)
+        elif mode == 'conj': #复共轭
+            data = np.conj(self.data)
+        elif mode == 'exchange': #交换实部和虚部
+            data = 1j*np.conj(self.data)
+        w = self.__class__(data, self.sRate)
+        return w
+
+    def timeFunc(self,kind='cubic'):
+        '''返回波形插值得到的时间函数，默认cubic插值'''
+        #为了更好地插值，在插值序列x/y前后各加一个点，增大插值范围
+        dt = 1/self.sRate
+        x = np.arange(-dt/2, self.len+dt, dt)
+        _y = np.append(0,self.data)
+        y = np.append(_y,0)
+        if self.isIQ:
+            _timeFuncI = interpolate.interp1d(x,np.real(y),kind=kind,
+                            bounds_error=False,fill_value=(0,0))
+            _timeFuncQ = interpolate.interp1d(x,np.imag(y),kind=kind,
+                            bounds_error=False,fill_value=(0,0))
+            _timeFunc = lambda x: _timeFuncI(x) + 1j*_timeFuncQ(x)
+        else:
+            _timeFunc = interpolate.interp1d(x,y,kind=kind,
+                            bounds_error=False,fill_value=(0,0))
+        return _timeFunc
 
     def setLen(self,length):
         '''设置长度，增大补0，减小截取'''
@@ -83,25 +141,26 @@ class Wavedata(object):
 
     def __neg__(self):
         '''负 -w'''
-        w = Wavedata(-self.data, self.sRate)
+        w = self.__class__(-self.data, self.sRate)
         return w
 
     def __abs__(self):
         '''绝对值 abs(w)'''
-        w = Wavedata(np.abs(self.data), self.sRate)
+        w = self.__class__(np.abs(self.data), self.sRate)
         return w
 
     def __rshift__(self, t):
         '''右移 w>>t 长度不变'''
         if abs(t)>self.len:
             raise TypeError('shift is too large !')
-        shift_data=self._blank(abs(t))
-        left_n = self.size-len(shift_data)
+        n = np.around(abs(t)*self.sRate).astype(int)
+        shift_data = np.zeros(n)
+        left_n = self.size-n
         if t>0:
             data = np.append(shift_data, self.data[:left_n])
         else:
             data = np.append(self.data[-left_n:], shift_data)
-        w = Wavedata(data, self.sRate)
+        w = self.__class__(data, self.sRate)
         return w
 
     def __lshift__(self, t):
@@ -113,7 +172,7 @@ class Wavedata(object):
         assert isinstance(other,Wavedata)
         assert self.sRate == other.sRate
         data = np.append(self.data,other.data)
-        w = Wavedata(data, self.sRate)
+        w = self.__class__(data, self.sRate)
         return w
 
     def __xor__(self, n):
@@ -123,13 +182,13 @@ class Wavedata(object):
             return self
         else:
             data = list(self.data)*n
-            w = Wavedata(data, self.sRate)
+            w = self.__class__(data, self.sRate)
             return w
 
     def __pow__(self, v):
         '''幂 w**v 波形值的v次幂'''
         data = self.data ** v
-        w = Wavedata(data, self.sRate)
+        w = self.__class__(data, self.sRate)
         return w
 
     def __add__(self, other):
@@ -140,7 +199,7 @@ class Wavedata(object):
             self.setSize(size)
             other.setSize(size)
             data = self.data + other.data
-            w = Wavedata(data, self.sRate)
+            w = self.__class__(data, self.sRate)
             return w
         else:
             return other + self
@@ -148,7 +207,7 @@ class Wavedata(object):
     def __radd__(self, v):
         '''加 v+w 波形值加v，会根据类型判断'''
         data = self.data +v
-        w = Wavedata(data, self.sRate)
+        w = self.__class__(data, self.sRate)
         return w
 
     def __sub__(self, other):
@@ -167,7 +226,7 @@ class Wavedata(object):
             self.setSize(size)
             other.setSize(size)
             data = self.data * other.data
-            w = Wavedata(data, self.sRate)
+            w = self.__class__(data, self.sRate)
             return w
         else:
             return other * self
@@ -175,7 +234,7 @@ class Wavedata(object):
     def __rmul__(self, v):
         '''乘 v*w 波形值相乘，会根据类型判断'''
         data = self.data * v
-        w = Wavedata(data, self.sRate)
+        w = self.__class__(data, self.sRate)
         return w
 
     def __truediv__(self, other):
@@ -186,7 +245,7 @@ class Wavedata(object):
             self.setSize(size)
             other.setSize(size)
             data = self.data / other.data
-            w = Wavedata(data, self.sRate)
+            w = self.__class__(data, self.sRate)
             return w
         else:
             return (1/other) * self
@@ -194,37 +253,41 @@ class Wavedata(object):
     def __rtruediv__(self, v):
         '''除 v/w 波形值相除，会根据类型判断'''
         data = v / self.data
-        w = Wavedata(data, self.sRate)
+        w = self.__class__(data, self.sRate)
         return w
 
-    def convolve(self, other, mode='same'):
+    def convolve(self, other, mode='same', norm=True):
         '''卷积
         mode: full, same, valid'''
         if isinstance(other,Wavedata):
             _kernal = other.data
         elif isinstance(other,(np.ndarray,list)):
             _kernal = np.array(other)
-        k_sum = sum(_kernal)
-        kernal = _kernal / k_sum   #归一化kernal，使卷积后的波形总幅度不变
+        if norm:
+            k_sum = sum(_kernal)
+            kernal = _kernal / k_sum   #归一化kernal，使卷积后的波形总幅度不变
+        else:
+            kernal = _kernal
         data = np.convolve(self.data,kernal,mode)
-        w = Wavedata(data, self.sRate)
+        w = self.__class__(data, self.sRate)
         return w
 
-    def FFT(self, mode='amp',half=True,**kw):
-        '''FFT'''
+    def FFT(self, mode='complex', half=True, **kw): # 支持复数，需做调整
+        '''FFT, 默认波形data为实数序列, 只取一半结果, 为实际物理频谱'''
         sRate = self.size/self.sRate
         # 对于实数序列的FFT，正负频率的分量是相同的
         # 对于双边谱，即包含负频率成分的，除以size N 得到实际振幅
-        # 对于单边谱，即不包含负频成分，实际振幅是正负频振幅的和，所以除了0频成分其他需要再乘以2
+        # 对于单边谱，即不包含负频成分，实际振幅是正负频振幅的和，
+        # 所以除了0频成分其他需要再乘以2
         fft_data = fft(self.data,**kw)/self.size
-        if mode == 'amp':
-            data =np.abs(fft_data)
-        elif mode == 'phase':
-            data =np.angle(fft_data,deg=True)
+        if mode in ['amp','abs']:
+            data = np.abs(fft_data)
+        elif mode in ['phase','angle']:
+            data = np.angle(fft_data,deg=True)
         elif mode == 'real':
-            data =np.real(fft_data)
+            data = np.real(fft_data)
         elif mode == 'imag':
-            data =np.imag(fft_data)
+            data = np.imag(fft_data)
         elif mode == 'complex':
             data = fft_data
         if half:
@@ -232,46 +295,36 @@ class Wavedata(object):
             index = int((len(data)+1)/2)-1
             data = data[:index]
             data[1:] = data[1:]*2 #非0频成分乘2
-        w = Wavedata(data, sRate)
+        w = self.__class__(data, sRate)
         return w
 
-    def getFFT(self,freq,mode='complex',**kw):
+    def getFFT(self,freq,mode='complex',half=True,**kw):
         ''' 获取指定频率的FFT分量；
         freq: 为一个频率值或者频率的列表，
         返回值: 是对应mode的一个值或列表'''
         freq_array=np.array(freq)
-        fft_w = self.FFT(mode=mode,half=True,**kw)
+        fft_w = self.FFT(mode=mode,half=half,**kw)
         index_freq = np.around(freq_array*fft_w.sRate).astype(int)
         res_array = fft_w.data[index_freq]
         return res_array
 
-    def high_resample(self,sRate):
-        '''提高高采样率重新采样'''
+    def high_resample(self,sRate,kind='nearest'): # 复数支持与timeFunc一致
+        '''提高采样率重新采样'''
         assert sRate > self.sRate
-        #提高采样率时，新起始点会小于原起始点，新结束点大于原结束点
-        #为了插值函数成功插值，在序列前后各加一个点，增大插值范围
-        dt = 1/self.sRate
-        x = np.arange(-dt/2, self.len+dt, dt)
-        _y = np.append(0,self.data)
-        y = np.append(_y,0)
-        timeFunc = interpolate.interp1d(x,y,kind='nearest')
+        timeFunc = self.timeFunc(kind=kind)
         domain = (0,self.len)
-        w = Wavedata.init(timeFunc,domain,sRate)
+        w = self.init(timeFunc,domain,sRate)
         return w
 
-    def low_resample(self,sRate):
+    def low_resample(self,sRate,kind='linear'): # 复数支持与timeFunc一致
         '''降低采样率重新采样'''
         assert sRate < self.sRate
-        #降低采样率时，新起始点会大于原起始点，新结束点小于原结束点，
-        #插值定义域不会超出，所以不用处理
-        x = self.x
-        y = self.data
-        timeFunc = interpolate.interp1d(x,y,kind='linear')
+        timeFunc = self.timeFunc(kind=kind)
         domain = (0,self.len)
-        w = Wavedata.init(timeFunc,domain,sRate)
+        w = self.init(timeFunc,domain,sRate)
         return w
 
-    def resample(self,sRate):
+    def resample(self,sRate): # 复数支持与timeFunc一致
         '''改变采样率重新采样'''
         if sRate == self.sRate:
             return self
@@ -281,102 +334,63 @@ class Wavedata(object):
             return self.low_resample(sRate)
 
     def normalize(self):
-        '''归一化波形，使其分布在(-1,+1)'''
-        self.data = self.data/max(abs(self.data))
+        '''归一化 取实部和虚部绝对值的最大值进行归一，使分布在(-1,+1)'''
+        v_max = max(abs(np.append(np.real(self.data),np.imag(self.data))))
+        self.data = self.data/v_max
         return self
 
-    def process(self,func):
-        '''处理，传入一个处理函数func, 输入输出都是(data,sRate)格式'''
-        data,sRate = func(self.data,self.sRate)
-        return Wavedata(data,sRate)
+    def derivative(self):
+        '''求导，点数不变'''
+        y1=np.append(0,self.data[:-1])
+        y2=np.append(self.data[1:],0)
+        diff_data = (y2-y1)/2 #差分数据，间隔1个点做差分
+        data = diff_data*self.sRate #导数，差分值除以 dt
+        w = self.__class__(data,self.sRate)
+        return w
 
-    def filter(self,filter):
+    def integrate(self):
+        '''求积分，点数不变'''
+        cumsum_data = np.cumsum(self.data) #累积
+        data = cumsum_data/self.sRate #积分，累积值乘以 dt
+        w = self.__class__(data,self.sRate)
+        return w
+
+    def process(self,func,**kw): # 根据具体情况确定是否支持复数
+        '''处理，传入一个处理函数func, 输入输出都是(data,sRate)格式'''
+        data,sRate = func(self.data,self.sRate,**kw) # 接受额外的参数传递给func
+        return self.__class__(data,sRate)
+
+    def filter(self,filter): # 根据具体情况确定是否支持复数
         '''调用filter的process函数处理；
         一般filter是本模块里的Filter类'''
         assert hasattr(filter,'process')
         w = self.process(filter.process)
         return w
 
-    def plot(self, *arg, isfft=False, **kw):
+    def plot(self, fmt1='', fmt2='--', isfft=False, **kw):
         '''对于FFT变换后的波形数据，包含0频成分，x从0开始；
         使用isfft=True会去除了x的偏移，画出的频谱更准确'''
         ax = plt.gca()
         if isfft:
             dt=1/self.sRate
             x = np.arange(0, self.len-dt/2, dt)
-            ax.plot(x, self.data, *arg, **kw)
         else:
-            ax.plot(self.x, self.data, *arg, **kw)
+            x = self.x
+        if self.isIQ:
+            ax.set_title('Wavedata-IQ')
+            ax.plot(x, np.real(self.data), fmt1, label='real', **kw)
+            ax.plot(x, np.imag(self.data), fmt2, label='imag', **kw)
+            plt.legend(loc = 'best')
+        else:
+            ax.set_title('Wavedata')
+            ax.plot(x, self.data, fmt1, **kw)
 
-
-def Blank(width=0, sRate=1e2):
-    timeFunc = lambda x: 0
-    domain=(0, width)
-    return Wavedata.init(timeFunc,domain,sRate)
-
-def DC(width=0, sRate=1e2):
-    timeFunc = lambda x: 1
-    domain=(0, width)
-    return Wavedata.init(timeFunc,domain,sRate)
-
-def Triangle(width=1, sRate=1e2):
-    timeFunc = lambda x: 1-np.abs(2/width*x)
-    domain=(-0.5*width,0.5*width)
-    return Wavedata.init(timeFunc,domain,sRate)
-
-def Gaussian(width=1, sRate=1e2):
-    c = width/(4*np.sqrt(2*np.log(2)))
-    timeFunc = lambda x: np.exp(-0.5*(x/c)**2)
-    domain=(-0.5*width,0.5*width)
-    return Wavedata.init(timeFunc,domain,sRate)
-
-def CosPulse(width=1, sRate=1e2):
-    timeFunc = lambda x: (np.cos(2*np.pi/width*x)+1)/2
-    domain=(-0.5*width,0.5*width)
-    return Wavedata.init(timeFunc,domain,sRate)
-
-def Sin(w, phi=0, width=0, sRate=1e2):
-    timeFunc = lambda t: np.sin(w*t+phi)
-    domain=(0,width)
-    return Wavedata.init(timeFunc,domain,sRate)
-
-def Cos(w, phi=0, width=0, sRate=1e2):
-    timeFunc = lambda t: np.cos(w*t+phi)
-    domain=(0,width)
-    return Wavedata.init(timeFunc,domain,sRate)
-
-def Sinc(a, width=1, sRate=1e2):
-    timeFunc = lambda t: np.sinc(a*t)
-    domain=(-0.5*width,0.5*width)
-    return Wavedata.init(timeFunc,domain,sRate)
-
-def Interpolation(x, y, sRate=1e2, kind='linear'):
-    '''参考scipy.interpolate.interp1d 插值'''
-    timeFunc = interpolate.interp1d(x, y, kind=kind)
-    domain = (x[0], x[-1])
-    return Wavedata.init(timeFunc,domain,sRate)
-
-def Chirp(width, f0, f1, sRate=1e2, method='linear', phi=0):
-    '''参考scipy.signal.chirp 啁啾'''
-    t1 = width # 结束点
-    timeFunc = lambda t: chirp(t, f0, t1, f1, method=method, phi=phi, )
-    domain = (0,t1)
-    return Wavedata.init(timeFunc,domain,sRate)
-
-def Sweep_poly(width, poly, sRate=1e2, phi=0):
-    '''参考scipy.signal.sweep_poly 多项式频率'''
-    timeFunc = lambda t: sweep_poly(t, poly, phi=0)
-    domain = (0,width)
-    return Wavedata.init(timeFunc,domain,sRate)
-
-
-if __name__ == "__main__":
-    a=Sin(w=1, width=10, phi=0, sRate=1000)
-    b=Gaussian(2,sRate=1000)
-    c=Blank(1,sRate=1000)
-
-    m=(0.5*a|c|b|c|b+1|c|a+0.5).setLen(20)>>5
-    n=m.convolve(b)
-    m.plot()
-    n.plot()
-    plt.show()
+    def plt(self, mode='psd', r=False, **kw): # 支持复数，需要具体了解
+        '''调用pyplot里与频谱相关的函数画图
+        mode 可以为 psd,specgram,magnitude_spectrum,angle_spectrum,
+        phase_spectrum等5个(cohere,csd需要两列数据，这里不支持)'''
+        ax = plt.gca()
+        plt_func = getattr(plt,mode)
+        res = plt_func(x=self.data,Fs=self.sRate,**kw)
+        if r:
+            return res
