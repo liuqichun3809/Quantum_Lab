@@ -18,6 +18,7 @@
   CA体系中还创建三个文件，第一个文件serial，初始化为01，用来跟踪最后一次颁发的证书的序列号；
   第二个文件index.txt，是一个排序数据库，用来跟踪已经颁发的证书；
   第三个文件是OpenSSL的配置文件。
+  
   $ sudo mkdir /var/myca
   $ cd /var/myca
   $ sudo mkdir certs private
