@@ -27,7 +27,6 @@
   $ sudo touch index.txt
   $ sudo touch openssl.cnf
 2）然后'sudo vi openssl.cnf'进入'openssl.cnf'文件，添加如下内容（注意其中‘/var/myca’根据实际进行修改）：
-'''
 [ ca ]
 default_ca = myca
 [ myca ]
@@ -66,7 +65,6 @@ emailAddress = test@cert.com
 organizationName = Root Certification Authority
 [ root_ca_extensions ]
 basicConstraints = CA:true
-'''
 
 3）设定OpenSSL配置文件的路径
   $ OPENSSL_CONF=/var/myca/openssl.cnf"
