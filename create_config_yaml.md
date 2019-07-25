@@ -27,7 +27,9 @@
   $ sudo echo "01" > serial
   $ sudo touch index.txt
   $ sudo touch openssl.cnf
+  
 2. 然后'sudo vi openssl.cnf'进入'openssl.cnf'文件，添加如下内容（注意其中‘/var/myca’根据实际进行修改）：
+
 [ ca ]
 default_ca = myca
 [ myca ]
@@ -68,19 +70,24 @@ organizationName = Root Certification Authority
 basicConstraints = CA:true
 
 3. 设定OpenSSL配置文件的路径
+
   $ OPENSSL_CONF=/var/myca/openssl.cnf"
   $ export OPENSSL_CONF
 
 4. 生成根证书，过程中按提示输入信息，不会进行验证，所以不需要真实信息
+
   $ sudo openssl req -x509 -newkey rsa -out qulab.pem -outform PEM -days 356
   
 5. 生成私钥‘.key’文件
+
   $ sudo openssl genrsa -des3 -out qulab.key 1024
   
 6. 生成CSR（证书签名请求），过程中按提示输入信息
+
   $ sudo openssl req -new -key qulab.key -out qulab.csr
 
 7. 生成自签名证书，过程中按提示输入信息
+
   $ sudo openssl x509 -req -days 365 -in qulab.csr -signkey qulab.key -out qulab.crt
 
 
@@ -88,7 +95,7 @@ basicConstraints = CA:true
 ## 创建‘config.yaml’文件
 
 ### 可以用ruamel.yaml库生成'.yaml'文件，示例代码如下：
-’‘’jupyter notebook
+'''
 from ruamel import yaml
 dict = {'xxx':'xxx'}
 yamlpath = os.path.join('/Users/liuqichun/Quantum_Lab', 'config.yaml')
