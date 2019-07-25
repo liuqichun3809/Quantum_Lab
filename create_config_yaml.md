@@ -14,7 +14,7 @@
 
 ### 该示例制作ssl证书所在目录为'/var/myca'，对应OpenSSL的配置文件内容需根据该目录修改。
 ### 命令窗口执行如下：
-1）环境准备，/var/myca下建立两个目录，certs用来保存CA颁发的所有的证书的副本；private用来保存CA证书的私钥匙。
+1. 环境准备，/var/myca下建立两个目录，certs用来保存CA颁发的所有的证书的副本；private用来保存CA证书的私钥匙。
   CA体系中还创建三个文件，第一个文件serial，初始化为01，用来跟踪最后一次颁发的证书的序列号；
   第二个文件index.txt，是一个排序数据库，用来跟踪已经颁发的证书；
   第三个文件是OpenSSL的配置文件。
@@ -26,7 +26,7 @@
   $ sudo echo "01" > serial
   $ sudo touch index.txt
   $ sudo touch openssl.cnf
-2）然后'sudo vi openssl.cnf'进入'openssl.cnf'文件，添加如下内容（注意其中‘/var/myca’根据实际进行修改）：
+2. 然后'sudo vi openssl.cnf'进入'openssl.cnf'文件，添加如下内容（注意其中‘/var/myca’根据实际进行修改）：
 [ ca ]
 default_ca = myca
 [ myca ]
@@ -66,20 +66,20 @@ organizationName = Root Certification Authority
 [ root_ca_extensions ]
 basicConstraints = CA:true
 
-3）设定OpenSSL配置文件的路径
+3. 设定OpenSSL配置文件的路径
   $ OPENSSL_CONF=/var/myca/openssl.cnf"
   $ export OPENSSL_CONF
 
-4）生成根证书，过程中按提示输入信息，不会进行验证，所以不需要真实信息
+4. 生成根证书，过程中按提示输入信息，不会进行验证，所以不需要真实信息
   $ sudo openssl req -x509 -newkey rsa -out qulab.pem -outform PEM -days 356
   
-5）生成私钥‘.key’文件
+5. 生成私钥‘.key’文件
   $ sudo openssl genrsa -des3 -out qulab.key 1024
   
-6）生成CSR（证书签名请求），过程中按提示输入信息
+6. 生成CSR（证书签名请求），过程中按提示输入信息
   $ sudo openssl req -new -key qulab.key -out qulab.csr
 
-7）生成自签名证书，过程中按提示输入信息
+7. 生成自签名证书，过程中按提示输入信息
   $ sudo openssl x509 -req -days 365 -in qulab.csr -signkey qulab.key -out qulab.crt
 
 
