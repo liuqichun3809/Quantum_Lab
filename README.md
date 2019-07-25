@@ -3,48 +3,39 @@
 
 Quantum_Lab 继承于 QuLab[https://github.com/feihoo87/QuLab/]
 
-Quantum_Lab 需要在 Jupyter Notebook 中使用。
+功能：以Python语言实现对各种实验设备的控制，进行实验测试和数据采集，运行方式为jupyter notebook。
 
-## 准备工作
+软件信息：
+1. 顶层为qulab项目和setup信息。
+2. qulab包含：设备驱动配置模块drivers和device、用户工具模块tools、软件管理模块。
+3. 软件的代码、数据存储管理、仪器配置、用户信息等通过MongoDB实现。
 
-1. 安装 MongoDB，用于存储数据、历史代码、仪器配置、用户信息（必须）。
-2. 制作 ssl 证书，用于 InstrumentServer 加密（非必须，和配置文件SSL项对应）。
 
-## 安装
+## 软件安装准备工作
+1. Python安装：
+    从官网（https://www.python.org/）下载安装，选择3.6以上版本，默认自带pip包管理工具，安装完成后在命令窗口以‘pip --version’查看是否有pip包管理工具，若无该管理工具，则可通过官网（https://pypi.org/project/pip/）进行安装。
+2. MongoDB安装：
+    从官网（https://www.mongodb.com/download-center/community）选择对应操作系统的版本进行下载安装，安装和配置过程请参考https://www.runoob.com/mongodb/mongodb-tutorial.html教程。
+3. Jupyter安装：
+    命令窗口中pip指令‘pip install jupyter’
+4. Python工具包安装：
+    在程序运行中若缺失某种工具包，则在命令窗口通过‘pip install ***’进行安装，由于一些工具包默认从境外的网站下载安装，速度较慢，可以采用镜像源，安装命令为‘pip install -i https://pypi.tuna.tsinghua.edu.cn/simple ***’，其中‘***’为需要安装的工具包名称。
+5. Quantum_Lab安装：
+ 1）$ cd /*/*/*（其中‘/*/*/*’为准备安装Quantum_Lab的路径）
+ 2）$ git clone https://github.com/liuqichun3809/Quantum_Lab.git
+ 3）$ cd Quantum_Lab
+ 4）$ pip install .
+ 若对Quantum_Lab内的代码进行了修改，则需要从新执行第3）和4）步，修改才能生效。
+6. 制作 ssl 证书，用于 InstrumentServer 加密，参考'create_config_yaml.md'文件。
+7. 创建配置文件 `config.yaml`，若使用 Windows 系统，将其置于`%ProgramData%\QuLab\`路径下，参考'create_config_yaml.md'文件。
 
-```bash
-python -m pip install Quantum_Lab
-```
-或者
-```bash
-git clone https://github.com/liuqichun3809/Quantum_Lab.git
-cd Quantum_Lab
-python -m pip install .
-```
 
-创建配置文件 `config.yaml`，若使用 Windows 系统，将其置于`%ProgramData%\QuLab\`路径下。
+## 软件运行前MongoDB启动准备
+1. $ cd /usr/local/mongodb/bin（若不是该路径，则改为对应mongodb安装的路径）
+2. $ sudo ./mongod
+    此操作为开启MongoDB的服务端口，若未开启该服务端口，则Quantum_Lab程序无法进行代码和数据管理，从而无法使用。若要通过命令窗口查看MongoDB数据库，则进入到/usr/local/mongodb/bin，然后执行‘mongo’指令。
 
-```yaml
-ca_cert: &ca_cert /path/to/CACert/ca.pem
 
-db:
-  db: qulab
-  host: [10.122.7.18, 10.122.7.19, 10.122.7.20]
-  username: qulab_admin
-  password: 'qulab_password'
-  authentication_source: qulab
-  replicaSet: rs0
-  ssl: true
-  ssl_ca_certs: *ca_cert
-  ssl_match_hostname: true
-
-server_port: 8123
-server_name: ['localhost', '127.0.0.1', '10.122.7.18']
-ssl:
-  ca: *ca_cert
-  cert: /path/to/sslcert/server.crt
-  key: /path/to/sslkey/server.key
-```
 
 ## 使用
 
@@ -191,8 +182,12 @@ qulab.admin.setInstrument('PNA-II', 'localhost', 'TCPIP::10.122.7.251', 'Network
 ```python
 qulab.listInstruments()
 ```
+5. 连接仪器
+```python
+pna=qulab.open_resource('PNA-I')
+```
 
-定义 App
+6. 定义 App
 ```python
 import numpy as np
 import skrf as rf
@@ -234,11 +229,11 @@ class S21(Application):
         ax.set_xlabel('Frequency / GHz')
         ax.set_ylabel('S21 / dB')
 ```
-保存
+7. 保存
 ```python
 S21.save(package='PNA')
 ```
-运行
+8. 运行
 ```python
 import qulab
 
@@ -258,18 +253,18 @@ app.run()
 
 ### 查询
 
-查看已有的 App
+1. 查看已有的 App
 ```python
 qulab.listApps()
 ```
 
-查询数据
+2. 查询数据
 ```python
-results = qulab.query()
+results = qulab.query('PAN.S21')
 results.display()
 ```
 
-获取原始数据
+3. 获取原始数据
 
 ```python
 res = qulab.query(app='TestApp')
