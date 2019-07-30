@@ -79,12 +79,6 @@
   
     6）生成CSR（证书签名请求），过程中按提示输入信息
     $ sudo openssl req -new -key qulab.key -out qulab.csr
-<<<<<<< HEAD
-
-    7）生成自签名证书，过程中按提示输入信息
-    $ sudo openssl x509 -req -days 365 -in qulab.csr -signkey qulab.key -out qulab.crt
-=======
->>>>>>> 555409c59a540340145ef893d247b7758a3d698d
 
     7）生成自签名证书，过程中按提示输入信息
     $ sudo openssl x509 -req -days 365 -in qulab.csr -signkey qulab.key -out qulab.crt
