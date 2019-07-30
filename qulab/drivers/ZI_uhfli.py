@@ -6,7 +6,7 @@ import time
 # need zhinst package
 import zhinst.utils
 
-from qulab import BaseDriver, QInteger, QOption, QReal, QString, QVector
+from qulab.device import BaseDriver, QInteger, QOption, QReal, QString, QVector
 
 
 logger = logging.getLogger('qulab.drivers.ZI')

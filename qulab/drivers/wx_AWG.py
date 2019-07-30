@@ -2,7 +2,7 @@
 import numpy as np
 import visa
 
-from qulab import BaseDriver, QOption, QReal, QList, QInteger
+from qulab.device import BaseDriver, QOption, QReal, QList, QInteger
 
 
 class Driver(BaseDriver):

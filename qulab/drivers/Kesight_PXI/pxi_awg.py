@@ -6,7 +6,7 @@ import keysightSD1
 import numpy as np
 import yaml
 import logging
-from qulab import BaseDriver, QOption, QReal, QList, QInteger
+from qulab.device import BaseDriver, QOption, QReal, QList, QInteger
 from qulab.config import caches_dir
 
 log = logging.getLogger(__name__)

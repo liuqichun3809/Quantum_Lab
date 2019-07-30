@@ -1,7 +1,7 @@
 import numpy as np
 import time
 
-from qulab import BaseDriver
+from qulab.device import BaseDriver
 from qulab import QReal, QOption, QInteger, QString, QVector
 
 
