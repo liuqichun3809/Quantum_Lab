@@ -8,8 +8,6 @@
     在Quantum_Lab/qulab/config.py文件中config_dir()函数对‘config.yaml’文件路径进行了要求，
     不同操作系统，目录不同。
 
-
-
 ## 制作做ssl证书
 
 ### 该示例制作ssl证书所在目录为'/var/myca'，对应OpenSSL的配置文件内容需根据该目录修改。
@@ -81,10 +79,15 @@
   
     6）生成CSR（证书签名请求），过程中按提示输入信息
     $ sudo openssl req -new -key qulab.key -out qulab.csr
+<<<<<<< HEAD
 
     7）生成自签名证书，过程中按提示输入信息
     $ sudo openssl x509 -req -days 365 -in qulab.csr -signkey qulab.key -out qulab.crt
+=======
+>>>>>>> 555409c59a540340145ef893d247b7758a3d698d
 
+    7）生成自签名证书，过程中按提示输入信息
+    $ sudo openssl x509 -req -days 365 -in qulab.csr -signkey qulab.key -out qulab.crt
 
 
 ## 创建‘config.yaml’文件
