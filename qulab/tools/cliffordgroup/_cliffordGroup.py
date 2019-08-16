@@ -117,7 +117,7 @@ class cliffordGroup(GateGroup):
         return index_seq
 
     def rbm_seq(self,size,group=None,ref=[]):
-        '''产生RBM索引序列'''
+        '''产生RBM索引序列,ref是需要标定的门序号，空则对应为参考序列'''
         l1=self.random(size,group,ref)
         l2=self.inverse_number(l1)
         l1.append(l2)
