@@ -20,7 +20,7 @@ class Record(Document):
     project = ReferenceField('Project')
     samples = ListField(ReferenceField('Sample'))
     children = ListField(ReferenceField('Record'))
-    tags = ListField(StringField(max_length=50))
+    tags = ListField(StringField(max_length=100))
     settings = DictField()
     rc = DictField()
     params = DictField()
@@ -36,7 +36,7 @@ class Record(Document):
     @functools.lru_cache(maxsize=1)
     def data(self):
         return from_pickle(self.datafield)
-
+    
     def set_data(self, obj):
         if self.datafield is None:
             self.datafield.put(
