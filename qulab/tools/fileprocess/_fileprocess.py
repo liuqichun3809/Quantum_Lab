@@ -1,7 +1,9 @@
 import os
 import datetime
 import numpy as np
-from qulab.db.schema.record import Record
+import matplotlib.pyplot as plt
+from qulab._app import getAppClass
+
 
 ## 将数据或者record存储为npz文件
 def save(path=None, name=None, x=None, y=None, z=None, tag=' ', record=None):
@@ -26,8 +28,9 @@ def save(path=None, name=None, x=None, y=None, z=None, tag=' ', record=None):
         else:
             assert True,'the data format to be saved is illegal'
     else:
-        if tag == ' ':
-            tag = get_record_info(record)
+        info = get_record_info(record)
+        for item in info:
+            tag = tag+'\n'+item+': '+str(info[item])
         data = record.data
         if len(data)==3:
             np.savez(file_path,x=data[0],y=data[1],z=data[2],tag=tag)
@@ -41,7 +44,11 @@ def save(path=None, name=None, x=None, y=None, z=None, tag=' ', record=None):
 
 ## 获取record的信息
 def get_record_info(Record):
-    information = 'created time: ' + str(Record.created_time) + '\n'+ 'finished time: ' + str(Record.finished_time) + '\n' + 'title: ' + str(Record.title) + '\n'+ 'tags: ' + str(Record.tags) + '\n' + 'parameters: ' + str(Record.params) + '\n'
+    information = {'created time': str(Record.created_time),
+                   'finished time': str(Record.finished_time),
+                   'title': str(Record.title),
+                   'tags': str(Record.tags),
+                   'parameters': str(Record.params)}
     return information
 
 
@@ -81,27 +88,33 @@ def npz2txt(npz_path='',txt_path=''):
 
 
 ## 将record存储为txt文件
-def record2txt(record=None, txt_path='', tag=' '):
+def record2txt(record=None, txt_path='', tag=' ', png=True):
     ## 确认输出txt文件的路径和文件名
     if not txt_path:
         assert txt_path,'No output txt file path, please check it!'
     elif '.txt' in txt_path:
         (file_dir, file) = os.path.split(txt_path)
+        (file_name, extension) = os.path.splitext(file)
+        jpg_path = os.path.join(file_dir,file_name+'.png')
         if not os.path.exists(file_dir):
             os.makedirs(file_dir)
     else:
         if not os.path.exists(txt_path):
             os.makedirs(txt_path)
+        jpg_path = os.path.join(txt_path,str(record.title)+'.png')
         txt_path = os.path.join(txt_path,str(record.title)+'.txt')
     
     ## 存储数据
-    if tag == ' ':
-        tag = get_record_info(record)
+    info = get_record_info(record)
+    for item in info:
+        tag = tag+'\n'+item+': '+str(info[item])
     data = record.data
     xyz = ['x','y','z']
+    
     fid = open(txt_path,'w+')
     fid.write('tag: \n')
-    fid.write(str(tag)+'\n')
+    fid.write(tag+'\n')
+    
     for idx in range(len(data)):
         fid.write('\n'+xyz[idx]+' data:\n')
         if xyz[idx]=='x' or xyz[idx]=='y':
@@ -114,3 +127,17 @@ def record2txt(record=None, txt_path='', tag=' '):
                     fid.write(str(data[idx][idx_row][idx_col])+'   ')
                 fid.write('\n')
     fid.close()
+    
+    ## 将数据对应的图存储为相同文件名的jpg，以便查看
+    if png:
+        title = info['title']
+        title = title.split(' ')
+        fullname = title[2].split('.')
+        version = title[3][2:-1]
+        
+        app=getAppClass(name=fullname[1],
+                        package=fullname[0],
+                        version=version)
+        fig = plt.figure()
+        app.plot(fig,record.data)
+        plt.savefig(jpg_path)
