@@ -1,8 +1,11 @@
 import os
 import datetime
+import re
+import pymongo
 import numpy as np
 import matplotlib.pyplot as plt
 from qulab._app import getAppClass
+import qulab
 
 
 ## 将数据或者record存储为npz文件
@@ -141,3 +144,25 @@ def record2txt(record=None, txt_path='', tag=' ', png=True):
         fig = plt.figure()
         app.plot(fig,record.data)
         plt.savefig(jpg_path)
+
+
+## 根据输入app的fullname和record的index，删除record数据
+def del_record(fullname='package.app',index=[]):
+    ## 注意删除record后，用display()看到的index会更新
+    ## 参数格式fullname='package.app',index=[*,*,*]
+    ## 若index=['all']，则删除fullname对应的所有record
+    myclient = pymongo.MongoClient("mongodb://localhost:27017/")
+    mydb = myclient["qulab"]
+    mycol = mydb["record"]
+    
+    # 由于每删除一条record数据，qulab.query()获取的recordset的index就会变化，
+    # 所以先用record_list将要删除的所有record信息（created_time）记录下来，再根据created_time删除数据
+    if index[0]=='all':
+        index = [i for i in range(qulab.query(fullname).count())]
+    record_list = {}
+    for idx in index:
+        created_time = get_record_info(qulab.query(fullname)[idx])['created time']
+        record_list[str(idx)] = re.sub(r'\D',',',created_time)
+    for item in record_list:
+        myquery = {'created_time': record_list[item]}
+        mycol.delete_one(myquery)
