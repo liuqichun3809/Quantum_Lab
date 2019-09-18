@@ -24,6 +24,7 @@
     $ sudo echo "01" > serial
     $ sudo touch index.txt
     $ sudo touch openssl.cnf
+    windows系统下，命令chmod需替换为attrib、touch需替换为ni
     
     2）然后'sudo vi openssl.cnf'进入'openssl.cnf'文件，添加如下内容（注意其中‘/var/myca’根据实际进行修改）：
     '''
@@ -94,7 +95,8 @@
     with open(yamlpath, "w", encoding="utf-8") as f:
         yaml.dump(desired_caps, f, Dumper=yaml.RoundTripDumper)
     '''
-### 可以用上面示例代码生成'.ymal'文件，然后将以下内容直接替换原内容，其中注释掉的内容表示用远程服务器时才需要的
+### 可以用上面示例代码生成'.ymal'文件，然后将以下内容直接替换原内容，
+### 其中注释掉的内容表示用远程服务器时才需要的，各证书文件的路径需根据实际进行修改
     '''
     ca_cert: &ca_cert '/var/myca/qulab.pem'
     db:
