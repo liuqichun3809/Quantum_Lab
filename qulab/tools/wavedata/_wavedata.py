@@ -279,7 +279,7 @@ class Wavedata(object):
         # 对于双边谱，即包含负频率成分的，除以size N 得到实际振幅
         # 对于单边谱，即不包含负频成分，实际振幅是正负频振幅的和，
         # 所以除了0频成分其他需要再乘以2
-        fft_data = fft(self.data,**kw)/self.size
+        fft_data = fft(self.data)/self.size
         if mode in ['amp','abs']:
             data = np.abs(fft_data)
         elif mode in ['phase','angle']:
@@ -292,7 +292,7 @@ class Wavedata(object):
             data = fft_data
         if half:
             #size N为偶数时，取N/2；为奇数时，取(N+1)/2
-            index = int((len(data)+1)/2)-1
+            index = int((len(data)+1)/2)
             data = data[:index]
             data[1:] = data[1:]*2 #非0频成分乘2
         w = self.__class__(data, sRate)
@@ -307,6 +307,31 @@ class Wavedata(object):
         index_freq = np.around(freq_array*fft_w.sRate).astype(int)
         res_array = fft_w.data[index_freq]
         return res_array
+    
+    def transfer_wd(self,transfer_func,**kw):
+        # transfer_func example
+        # transfer_func = lambda w: 1+1j*0.01*w/(1j*w+1e9/10)
+        #                            +1j*0.005*w/(1j*w+1e9/20)
+        #                            +1j*0.003*w/(1j*w+1e9/30)
+        fft_data = fft(self.data)
+        
+        # size N为偶数时，取N/2；为奇数时，取(N+1)/2
+        index = int((len(fft_data)+1)/2)
+        # 获取和fft_data对应的真实频谱频率
+        x_1 = np.array([n for n in range(index)])
+        if len(fft_data)%2==0:
+            x_2 = np.array([n for n in range(index)])+1
+            x_2 = -x_2[::-1]
+        else:
+            x_2 = np.array([n for n in range(index-1)])+1
+            x_2 = -x_2[::-1]
+        freq = 2*np.pi*np.append(x_1,x_2)*self.sRate/self.size
+        # 根据transfer_func修正波形的频谱，然后再从新生成波形
+        transfer_factor = np.array(transfer_func(freq))
+        fft_data = np.array(fft_data)*transfer_factor
+        self.data = ifft(fft_data,**kw)
+        return self
+    
 
     def high_resample(self,sRate,kind='nearest'): # 复数支持与timeFunc一致
         '''提高采样率重新采样'''
