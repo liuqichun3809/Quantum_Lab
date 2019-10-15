@@ -118,17 +118,50 @@ def record2txt(record=None, txt_path='', tag=' ', png=True):
     fid.write('tag: \n')
     fid.write(tag+'\n')
     
-    for idx in range(len(data)):
-        fid.write('\n'+xyz[idx]+' data:\n')
-        if xyz[idx]=='x' or xyz[idx]=='y':
-            for temp_data in data[idx]:
-                fid.write(str(temp_data)+'\n')
-        else:
-            row, col = data[idx].shape
-            for idx_row in range(row):
-                for idx_col in range(col):
-                    fid.write(str(data[idx][idx_row][idx_col])+'   ')
+    # 当record数据为data=[x,y,z]格式时
+    if len(data[len(data)-1].shape)==2:
+        fid.write('\n'+'data text format:\n')
+        fid.write('000000      y axis\n')
+        fid.write('x axis      z data\n')
+        if len(data)>3:
+            fid.write('!!! This data has more than two parts, for example, PNA outputs have amp and phase. !!!\n')
+        fid.write('\n'+'data begin:\n')
+        for idx_z in range(len(data)-2):
+            fid.write('000000     ')
+            for y in data[1]:
+                fid.write(str(y)+'     ')
+            fid.write('\n')
+            for idx_col in range(len(data[0])):
+                fid.write(str(data[0][idx_col])+'     ')
+                for idx_row in range(len(data[1])):
+                    fid.write(str(data[idx_z+2][idx_row][idx_col])+'     ')
                 fid.write('\n')
+            fid.write('\n\n')
+        """
+        for idx in range(len(data)):
+            fid.write('\n'+xyz[idx]+' data:\n')
+            if xyz[idx]=='x' or xyz[idx]=='y':
+                for temp_data in data[idx]:
+                    fid.write(str(temp_data)+'\n')
+            else:
+                row, col = data[idx].shape
+                for idx_row in range(row):
+                    for idx_col in range(col):
+                        fid.write(str(data[idx][idx_row][idx_col])+'   ')
+                    fid.write('\n')
+        """
+    # 当record数据为data=[x,y,y,...]格式时
+    else:
+        for idx in range(len(data)):
+                if idx==0:
+                    fid.write('\n'+'x data:    ')
+                else:
+                    fid.write('y data:    ')
+        fid.write('\n'+'data begin:\n')
+        for n in range(len(data[0])):
+            for idx in range(len(data)):
+                fid.write(str(data[idx][n])+'    ')
+            fid.write('\n')
     fid.close()
     
     ## 将数据对应的图存储为相同文件名的jpg，以便查看
