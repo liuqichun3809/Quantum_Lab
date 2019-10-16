@@ -13,12 +13,12 @@ Quantum_Lab 继承于 QuLab[https://github.com/feihoo87/QuLab/]
 
 ## 软件安装准备工作
     1. Python安装：
-        从官网（https://www.python.org/）下载安装，选择3.6以上版本，默认自带pip包管理工具，
+        从官网(https://www.python.org/) 下载安装，选择3.6以上版本，默认自带pip包管理工具，
         安装完成后在命令窗口以‘pip --version’查看是否有pip包管理工具，
-        若无该管理工具，则可通过官网（https://pypi.org/project/pip/）进行安装。
+        若无该管理工具，则可通过官网(https://pypi.org/project/pip/) 进行安装。
     2. MongoDB安装：
-        从官网（https://www.mongodb.com/download-center/community）选择对应操作系统的版本进行下载安装，
-        安装和配置过程请参考https://www.runoob.com/mongodb/mongodb-tutorial.html教程。
+        从官网(https://www.mongodb.com/download-center/community) 选择对应操作系统的版本进行下载安装，
+        安装和配置过程请参考https://www.runoob.com/mongodb/mongodb-tutorial.html 教程。
     3. Jupyter安装：
         命令窗口中pip指令‘pip install jupyter’
     4. Python工具包安装：
@@ -26,6 +26,12 @@ Quantum_Lab 继承于 QuLab[https://github.com/feihoo87/QuLab/]
         由于一些工具包默认从境外的网站下载安装，速度较慢，可以采用镜像源，
         安装命令为‘pip install -i https://pypi.tuna.tsinghua.edu.cn/simple ***’，
         其中‘***’为需要安装的工具包名称。
+        windows系统下，用pip安装工具包出现“microsoft visual c++ 14.0 is required"错误时，
+        可以手动去”https://www.lfd.uci.edu/~gohlke/pythonlibs/#wordcloud" 下载要安装的工具包到本地，
+        然后在pip安装下载好的本地工具包
+    5. git工具安装：
+        若系统未安装git，则可以按照“https://www.git-scm.com/book/en/v2/Getting-Started-Install-Git" 的说明,
+        选择对应系统进行安装。
     5. Quantum_Lab安装：
         1）$ cd /*/*/*（其中‘/*/*/*’为准备安装Quantum_Lab的路径）
         2）$ git clone https://github.com/liuqichun3809/Quantum_Lab.git
@@ -42,6 +48,7 @@ Quantum_Lab 继承于 QuLab[https://github.com/feihoo87/QuLab/]
     2. $ sudo ./mongod
        此操作为开启MongoDB的服务端口，若未开启该服务端口，则Quantum_Lab程序无法进行代码和数据管理，从而无法使用。
        若要通过命令窗口查看MongoDB数据库，则进入到/usr/local/mongodb/bin，然后执行‘mongo’指令。
+    3. 也可以将路劲添加到系统环境变量path里，然后在任意路劲下直接运行 $ mongod即可。
 
 
 ## 使用

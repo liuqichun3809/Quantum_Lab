@@ -6,7 +6,7 @@
     此示例为Mac系统下进行的，运行Quantum_Lab程序的jupyter notebook的home目录是‘/Users/liuqichun/’，所以
     ‘config.yaml’文件是放在了'/Users/liuqichun/Quantum_Lab'目录下，该目录需要根据实际情况进行修改。
     在Quantum_Lab/qulab/config.py文件中config_dir()函数对‘config.yaml’文件路径进行了要求，
-    不同操作系统，目录不同。
+    不同操作系统，目录不同，默认情况下windows系统在’C:\ProgramData\Quantum_Lab'目录（需要手动创建该目录）
 
 ## 制作做ssl证书
 
@@ -24,7 +24,8 @@
     $ sudo echo "01" > serial
     $ sudo touch index.txt
     $ sudo touch openssl.cnf
-    windows系统下，命令chmod需替换为attrib、touch需替换为ni
+    windows系统下，命令chmod需替换为attrib（可以不执行）、touch需替换为ni，
+    ‘openssl.cnf’替换为‘openssl.cfg'，“sudo”去掉，改为用管理员身份运行命令窗口
     
     2）然后'sudo vi openssl.cnf'进入'openssl.cnf'文件，添加如下内容（注意其中‘/var/myca’根据实际进行修改）：
     '''
@@ -68,20 +69,28 @@
     basicConstraints = CA:true
     '''
 
-    3）设定OpenSSL配置文件的路径
-    $ OPENSSL_CONF=/var/myca/openssl.cnf"
+    3）设定OpenSSL配置文件的路径(windows下不执行)
+    $ OPENSSL_CONF="/var/myca/openssl.cnf"
     $ export OPENSSL_CONF
+    
+    4）openssl安装
+    windos系统默认没有openssl，需要进行安装，通过命令窗口中输入openssl确认是否安装；
+    openssl可从”https://www.slproweb.com/products/Wins32OpenSSL.html"选择合适版本下载安装；
+    安装完成后需要将openssl安装后的路径（一般为”**\OpenSSL-Win64\bin"）添加到系统环境变量中；
+    
+    5) openssl.cfg文件替换
+    windows系统下需要用前面生成的openssl.cnf文件替换openssl安装路径下“**\OpenSSL-Win64\bin”的原文件
 
-    4）生成根证书，过程中按提示输入信息，不会进行验证，所以不需要真实信息
+    6）生成根证书，过程中按提示输入信息，不会进行验证，所以不需要真实信息
     $ sudo openssl req -x509 -newkey rsa -out qulab.pem -outform PEM -days 356
   
-    5）生成私钥‘.key’文件
+    7）生成私钥‘.key’文件
     $ sudo openssl genrsa -des3 -out qulab.key 1024
   
-    6）生成CSR（证书签名请求），过程中按提示输入信息
+    8）生成CSR（证书签名请求），过程中按提示输入信息
     $ sudo openssl req -new -key qulab.key -out qulab.csr
 
-    7）生成自签名证书，过程中按提示输入信息
+    9）生成自签名证书，过程中按提示输入信息
     $ sudo openssl x509 -req -days 365 -in qulab.csr -signkey qulab.key -out qulab.crt
 
 
