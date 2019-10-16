@@ -32,14 +32,14 @@ Quantum_Lab 继承于 QuLab[https://github.com/feihoo87/QuLab/]
     5. git工具安装：
         若系统未安装git，则可以按照“https://www.git-scm.com/book/en/v2/Getting-Started-Install-Git" 的说明,
         选择对应系统进行安装。
-    5. Quantum_Lab安装：
+    6. Quantum_Lab安装：
         1）$ cd /*/*/*（其中‘/*/*/*’为准备安装Quantum_Lab的路径）
         2）$ git clone https://github.com/liuqichun3809/Quantum_Lab.git
         3）$ cd Quantum_Lab
         4）$ pip install .
         若对Quantum_Lab内的代码进行了修改，则需要从新执行第3）和4）步，修改才能生效。
-    6. 制作 ssl 证书，用于 InstrumentServer 加密，参考'create_config_yaml.md'文件。
-    7. 创建配置文件 `config.yaml`，若使用 Windows 系统，将其置于`%ProgramData%\QuLab\`路径下，
+    7. 制作 ssl 证书，用于 InstrumentServer 加密，参考'create_config_yaml.md'文件。
+    8. 创建配置文件 `config.yaml`，若使用 Windows 系统，将其置于`%ProgramData%\QuLab\`路径下，
        参考'create_config_yaml.md'文件。
 
 
