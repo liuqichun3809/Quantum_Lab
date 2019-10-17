@@ -97,7 +97,12 @@ def Sweep_poly(poly, width, sRate=1e2, phi=0):
 def DRAGpulse(width=0, sRate=1e2, a=0.5, TYPE=CosPulse, **kw):
     '''IQ类型 DRAG波形,a为系数'''
     I = TYPE(width, sRate, **kw)
-    Q = a*I.derivative()
+    amp=np.max(np.abs(I.data))
+    Q=I.derivative()
+    amp_drag=np.max(np.abs(Q.data))
+    if amp_drag:
+        Q.data *= (amp/amp_drag)
+    Q *= a
     return I+1j*Q
 
 def DRAG_wd(wd, a=0.5):
