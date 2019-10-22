@@ -14,7 +14,7 @@ class Driver(BaseDriver):
            options=[('voltage', 'VOLT'), ('current', 'CURR')]),
         
         QOption('Range',
-           set_cmd=':SOUR:RANG %(option)',
+           set_cmd=':SOUR:RANG %(option)s',
            get_cmd=':SOUR:RANG?',
            options=[('0.001', 1E-3), ('0.01', 10E-3), 
                     ('0.1', 100E-3), ('0.2', 200E-3), 
