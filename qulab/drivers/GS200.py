@@ -22,11 +22,11 @@ class Driver(BaseDriver):
                     ('30', 30E+0)]),
         
         QReal('Level', value=0, unit='V or A',
-          set_cmd=':SOUR:LEV %(value).4f',
+          set_cmd=':SOUR:LEV %(value).8f',
           get_cmd=':SOUR:LEV?'),
         
         QReal('LevelAuto', value=0, unit='V or A',
-          set_cmd=':SOUR:LEV:AUTO %(value).4f',
+          set_cmd=':SOUR:LEV:AUTO %(value).8f',
           get_cmd=':SOUR:LEV?'),
         
         QReal('ProtectVolt', value=0, unit='V',
@@ -34,7 +34,7 @@ class Driver(BaseDriver):
           get_cmd=':SOUR:PROT:VOLT?'),
         
         QReal('ProtectCurr', value=0, unit='A',
-          set_cmd=':SOUR:PROT:CURR %(value).4f',
+          set_cmd=':SOUR:PROT:CURR %(value).8f',
           get_cmd=':SOUR:PROT:CURR?'),
 
          QOption('Output',
