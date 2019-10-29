@@ -1,6 +1,9 @@
 import getpass
 
 from . import _bootstrap, db
+from .config import config, config_file
+from ruamel import yaml
+import pymongo
 
 
 def getRegisterInfo():
@@ -32,3 +35,20 @@ def uploadDriver(path):
 @_bootstrap.authenticated
 def setInstrument(name, host, address, driver):
     db.update.setInstrument(name, host, address, driver)
+
+
+def set_database(database):
+    print('The following databases are already existed:')
+    print(get_database())
+    if config['db']['db'] != database:
+        config['db']['db'] = database
+        yamlpath = config_file()
+        with open(yamlpath, 'w', encoding='utf-8') as f:
+            yaml.dump(config, f, Dumper=yaml.RoundTripDumper)
+        print('You have created a new database "%s", please restart this jupyter server to use it.' % database)
+    else:
+        print('Your recent selected database already is "%s".' % database)
+        
+def get_database():
+    myclient = pymongo.MongoClient('mongodb://localhost:27017')
+    return myclient.database_names()

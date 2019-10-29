@@ -29,6 +29,7 @@ requirements = [
     'pyvisa-py>=0.2',
     'PyYAML>=3.12',
     'quantities>=0.12.1',
+    'ruamel.yaml>=0.16.5',
 ]
 
 if platform.system() == 'Windows':
