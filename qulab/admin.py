@@ -51,4 +51,5 @@ def set_database(database):
         
 def get_database():
     myclient = pymongo.MongoClient('mongodb://localhost:27017')
+    print('The recent database is "%s".' % config['db']['db'])
     return myclient.database_names()
