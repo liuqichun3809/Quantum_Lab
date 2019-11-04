@@ -96,9 +96,10 @@ class Driver(BaseDriver):
                     ('900M', 1),
                     ('450M', 2),
                     ('225M', 3),
-                    ('112.5M', 4),
-                    ('56.25M', 5),
-                    ('28.12M', 6)]),
+                    ('112M', 4),
+                    ('56M', 5),
+                    ('28M', 6),
+                    ('14M', 7)]),
         QOption('Sig_In_RunMode', get_cmd='/scopes/0/single',
                 options = [
                     ('Continuous', 1),
@@ -133,6 +134,20 @@ class Driver(BaseDriver):
                     ('Both', 3)]),
         QReal('Sig_In_TrigLevel', value=0.5, unit='V', ch=0, get_cmd='/scopes/0/triglevel'),
         QReal('Sig_In_TrigDelay', value=100e-9, unit='s', ch=0, get_cmd='/scopes/0/trigdelay'),
+        
+        # set aux channel
+        QOption('Aux_output_select', ch=0, get_cmd='/auxouts/%(ch)d/outputselect',
+                options = [
+                    ('AWG', 4),
+                    ('Manual', -1)]),
+        QOption('Aux_demod_select', ch=0, get_cmd='/auxouts/%(ch)d/demodselect',
+                options = [
+                    ('aux_ch0', 0),
+                    ('aux_ch1', 1),
+                    ('aux_ch2', 2),
+                    ('aux_ch3', 3)]),
+        QReal('Aux_output_scale', value=2.0, unit='V', ch=0, get_cmd='/auxouts/%(ch)d/scale'),
+        QReal('Aux_output_offset', value=0.0, unit='V', ch=0, get_cmd='/auxouts/%(ch)d/offset'),
     ]
     
        
@@ -142,6 +157,8 @@ class Driver(BaseDriver):
         self.n_ch = 2
         self.wave = {}
         self._node_datatypes = {}
+        self.aux_n_ch = 4
+        self.aux_out = False
 
     def performOpen(self, **kw):
         """Perform the operation of opening the instrument connection"""
@@ -189,12 +206,15 @@ class Driver(BaseDriver):
         return value_set
 
 
-    def create_waveform(self, length):
+    def create_waveform(self, length=0, aux_length=0):
         # re_init AWG for clearing the wave in used
         #self.init()
         
         # map wave to channel
         self._map_wave_to_channel()
+        
+        # proceed depending on run mode
+        run_mode = self._get_node_value(self.quantities['RunMode'])
         
         # create waveforms, one per channel
         awg_program = '' 
@@ -202,25 +222,51 @@ class Driver(BaseDriver):
             awg_program += textwrap.dedent("""\
             wave w%d = zeros(_N_)+1;
             """) % (channel)
-        # proceed depending on run mode
-        run_mode = self._get_node_value(self.quantities['RunMode'])
-        # continue mode (internal trigger mode)
-        if run_mode == 1:
-            awg_program += textwrap.dedent("""\
-                setUserReg(0, 0);
-                while(true){
-                    while(getUserReg(0) == 0){
+        # if needs aux output, create aux waveform for aux channel
+        if self.aux_out:
+            for channel in range(self.aux_n_ch):
+                awg_program += textwrap.dedent("""\
+                wave aux_w%d = zeros(_AUX_N_);
+                """) % (channel)
+            # continue mode (internal trigger mode)
+            if run_mode == 1:
+                awg_program += textwrap.dedent("""\
+                    setUserReg(0, 0);
+                    while(true){
+                        while(getUserReg(0) == 0){
+                            playWave(%s);
+                            playAuxWave(%s);
+                            }
+                        }""") % (self.wave_to_channel, self.aux_wave_to_channel)
+            elif run_mode == 0:
+                awg_program += textwrap.dedent("""\
+                    setUserReg(0, 0);
+                    while(true){
+                        waitDigTrigger(1,1);
                         playWave(%s);
-                        }
-                    }""") % (self.wave_to_channel)
-        elif run_mode == 0:
-            awg_program += textwrap.dedent("""\
-                setUserReg(0, 0);
-                while(true){
-                    waitDigTrigger(1,1);
-                    playWave(%s);
-                    }""") % (self.wave_to_channel)
-        
+                        playAuxWave(%s);
+                        }""") % (self.wave_to_channel, self.aux_wave_to_channel)
+            
+            # Replace the placeholder with the length of points.
+            awg_program = awg_program.replace('_AUX_N_', str(aux_length))
+        else:
+            # continue mode (internal trigger mode)
+            if run_mode == 1:
+                awg_program += textwrap.dedent("""\
+                    setUserReg(0, 0);
+                    while(true){
+                        while(getUserReg(0) == 0){
+                            playWave(%s);
+                            }
+                        }""") % (self.wave_to_channel)
+            elif run_mode == 0:
+                awg_program += textwrap.dedent("""\
+                    setUserReg(0, 0);
+                    while(true){
+                        waitDigTrigger(1,1);
+                        playWave(%s);
+                        }""") % (self.wave_to_channel)
+            
         # Replace the placeholder with the length of points.
         awg_program = awg_program.replace('_N_', str(length))
         # stop current AWG
@@ -235,22 +281,41 @@ class Driver(BaseDriver):
         
         
     def use_waveform(self, name):
-        # 'name' should be the type of name=['name0','name1',]
+        # 'name' should be the type of name=['name0','name1','aux_name0','aux_name1',...]
         # 'name0' and 'name1' should be the same as in 'update_waveform' and will map to ch=0 and ch=1
+        # 'aux_name0' and 'aux_name1' ... should be the same as in 'update_waveform' and will map to aux_ch=0 and aux_ch=1 ...
         # stop current AWG
         base = '/%s/awgs/0/' % (self.device)
         self.daq.setInt(base + 'enable', 0)
         
         # get waveform
         wave_length = len(self.wave[name[0]])
-        waveform = np.zeros(wave_length*len(name))
-        for n in range(len(name)):
-            waveform[n:wave_length*len(name):len(name)] = self.wave[name[n]]
+        waveform = np.zeros(wave_length*self.n_ch)
+        for n in range(self.n_ch):
+            waveform[n:wave_length*self.n_ch:self.n_ch] = self.wave[name[n]]
         
         # Replace the waveform with 'points'.
         waveform_native = zhinst.utils.convert_awg_waveform(waveform)
         waveform_node_path = '/%s/awgs/0/waveform/waves/0' % (self.device)
         self.daq.setVector(waveform_node_path, waveform_native)
+        
+        # if needs aux output, use aux waveform for aux channel
+        if self.aux_out:
+            # set aux channel
+            for ch in range(self.aux_n_ch):
+                self.setValue('Aux_output_select', 'AWG', ch=ch)
+                self.setValue('Aux_demod_select', 'aux_ch%d' % (ch), ch=ch)
+                self.setValue('Aux_output_scale', 2.0, ch=ch)
+                self.setValue('Aux_output_offset', 0.0, ch=ch)
+            # get aux waveform
+            aux_wave_length = len(self.wave[name[self.n_ch]])
+            aux_waveform = np.zeros(aux_wave_length*self.aux_n_ch)
+            for n in range(self.aux_n_ch):
+                aux_waveform[n:aux_wave_length*self.aux_n_ch:self.aux_n_ch] = self.wave[name[n+self.n_ch]]
+            # Replace the aux waveform with 'points'.
+            aux_waveform_native = zhinst.utils.convert_awg_waveform(aux_waveform)
+            aux_waveform_node_path = '/%s/awgs/0/waveform/waves/1' % (self.device)
+            self.daq.setVector(aux_waveform_node_path, aux_waveform_native)
         
         # Start the AWG in single-shot mode.
         # This is the preferred method of using the AWG: Run in single mode continuous waveform playback is best achieved by
@@ -277,6 +342,10 @@ class Driver(BaseDriver):
         for n in range(self.n_ch):
             x.append('w%d' % (n))
         self.wave_to_channel = ', '.join(x)
+        aux = []
+        for n in range(self.aux_n_ch):
+            aux.append('aux_w%d' % (n))
+        self.aux_wave_to_channel = ', '.join(aux)
         
 
     def _upload_awg_program(self, awg_program, core=0):
