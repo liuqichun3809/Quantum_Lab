@@ -119,7 +119,7 @@ def record2txt(record=None, txt_path='', tag=' ', png=True):
     fid.write(tag+'\n')
     
     # 当record数据为data=[x,y,z]格式时
-    if len(data[len(data)-1].shape)==2:
+    if len(np.array(data[len(data)-1]).shape)==2:
         fid.write('\n'+'data text format:\n')
         fid.write('000000      y axis\n')
         fid.write('x axis      z data\n')
