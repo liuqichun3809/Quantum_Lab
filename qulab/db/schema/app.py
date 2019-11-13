@@ -51,6 +51,7 @@ def getApplication(name='',
     name, package = __get_App_name_and_package(name, package)
     kwds['name'] = name
     kwds['package'] = package
+    kwds['hidden'] = False
     if id is not None:
         kwds = {'id': id}
     elif isinstance(version, str):
@@ -88,9 +89,9 @@ def saveApplication(name,
         module.save()
     appdata = Application.objects(
         name=name, package=package, module=module).first()
+    lastapp = Application.objects(
+        name=name, package=package).order_by('-version.num').first()
     if appdata is None:
-        lastapp = Application.objects(
-            name=name, package=package).order_by('-version.num').first()
         appdata = Application(
             name=name,
             package=package,
@@ -104,6 +105,12 @@ def saveApplication(name,
             appdata.version.num = lastapp.version.num + 1
             lastapp.hidden = True
             lastapp.save()
+        appdata.save()
+    else:
+        if lastapp is not None:
+            lastapp.hidden = True
+            lastapp.save()
+        appdata.hidden = False
         appdata.save()
 
     if version is not None and version != appdata.version.text:
