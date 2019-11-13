@@ -89,7 +89,7 @@ class Driver(BaseDriver):
                      timeout=timeout) as h:
             yield from h.read()
 
-    def getData(self, fft=False, avg=False):
+    def getData(self, fft=False, avg=False, timeout=1):
         samplesPerRecord = self.config['samplesPerRecord']
         repeats = self.config['repeats']
         e = self.config['e']
@@ -104,7 +104,7 @@ class Driver(BaseDriver):
                                                  repeats=repeats,
                                                  buffers=None,
                                                  recordsPerBuffer=1,
-                                                 timeout=1):
+                                                 timeout=timeout):
                     if fft:
                         queue.append(
                             [chA[:n].dot(e).T / n, chB[:n].dot(e).T / n])
@@ -131,5 +131,5 @@ class Driver(BaseDriver):
     def getIQ(self, avg=False):
         return self.getData(True, avg)
 
-    def getTraces(self, avg=True):
-        return self.getData(False, avg)
+    def getTraces(self, avg=True, timeout=1):
+        return self.getData(False, avg, timeout)
