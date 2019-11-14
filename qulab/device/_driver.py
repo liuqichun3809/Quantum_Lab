@@ -232,7 +232,7 @@ p_addr = re.compile(r'^([a-zA-Z]+)[0-9]*::.+$')
 zi_addr = re.compile(r'^(ZI)::([a-zA-Z]+[0-9]*)::([a-zA-Z-]+[0-9]*)(|::INSTR)$')
 pxi_addr = re.compile(r'^(PXI)[0-9]?::CHASSIS([0-9]*)::SLOT([0-9]*)::FUNC([0-9]*)::INSTR$')
 #其他类型 (OTHER)::(Key):(Value)::INSTR
-other_addr = re.compile(r'^(OTHER)::([a-zA-Z-]+):(.*)::INSTR$')
+other_addr = re.compile(r'^(OTHER)::(.*)(|::INSTR)$')
 # 横河仪器的GS系列yokogawa电流源不支持visa的query()
 # 该GS系列设备地址格式为 (GS)([0-9]*)::(.*)，例如 GS200::TCPIP::192.168.0.1，即格式中 (.*) 项为通常的 TCPIP 格式地址
 gs_addr = re.compile(r'^(GS)([0-9]*)::(.*)')
@@ -283,15 +283,8 @@ def _parse_pxi_resource_name(pxi, addr):
 
 def _parse_other_resource_name(m, addr):
     type = m.group(1)
-    key = m.group(2)
-    value = m.group(3)
-    kw={key:value}
-    kw.update(
-        type=type,
-        ins=None,
-        company=None,
-        addr=addr)
-    return kw
+    addr = m.group(2)
+    return dict(type=type, ins=None, company=None, addr=addr)
 
 def _parse_gs_resource_name(m, addr):
     rm = visa.ResourceManager('@ni')

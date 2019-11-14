@@ -17,11 +17,11 @@ class Driver(BaseDriver):
         QReal('Offset', value=0, unit='V', ch=1),
             ]
 
-    def __init__(self, addr, **kw):
+    def __init__(self, **kw):
         '''
         addr: ip, e.g. '192.168.1.6'
         '''
-        super().__init__(addr, **kw)
+        super().__init__(**kw)
         self.model = 'PG_DC'
 
     def performOpen(self):
