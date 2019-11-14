@@ -1,7 +1,7 @@
-from qulab.Driver import visaDriver, QInteger, QOption, QReal
+from qulab.Driver import BaseDriver, QInteger, QOption, QReal
 
 
-class Driver(visaDriver):
+class Driver(BaseDriver):
     support_models = ['J7211A','J7211B','J7211C',]
     '''Agilent Attenuation Control Unit'''
 
