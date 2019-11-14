@@ -1,5 +1,4 @@
-from qulab.Driver import BaseDriver, QInteger, QOption, QReal
-
+from qulab.device import BaseDriver, QInteger, QOption, QReal, QString, QVector
 
 class Driver(BaseDriver):
     support_models = ['J7211A','J7211B','J7211C',]
