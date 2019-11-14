@@ -2,7 +2,7 @@
 import numpy as np
 import logging
 
-from qulab.Driver import BaseDriver, QInteger, QOption, QReal, QString, QVector
+from qulab.device import BaseDriver, QInteger, QOption, QReal, QString, QVector
 
 from .PG_DC_api import Voltage
 
