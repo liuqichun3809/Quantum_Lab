@@ -65,6 +65,10 @@ class Driver(BaseDriver):
         QReal('Spectrum_length', value=1e-3, unit='s',
           set_cmd='SENS:SPEC:LENG %(value)f',
           get_cmd='SENS:SPEC:LENG?'),
+        QOption('Mode', set_cmd='INIT:CONT %(option)s', get_cmd='INIT:CONT?',
+            options = [
+                ('Continus', 'ON'),
+                ('Single', 'OFF')]),
         
         # get spectrum trace and I/Q trace
         QReal('Spectrum_trace', value=[], unit='dBm', ch=1, get_cmd='FETCh:SPECtrum:TRACe%(ch)d?'),
@@ -95,7 +99,9 @@ class Driver(BaseDriver):
             value = quant.getValue()
         return value
     
-    def get_spectrum_trace(self):
+    def get_spectrum_trace(self, timeout=10):
+        self.set_timeout(timeout)
+        self.ins.write('INIT')
         center = self.getValue('Frequency center')
         span = self.getValue('Frequency span')
         points = int(self.getValue('Points')[1:])
