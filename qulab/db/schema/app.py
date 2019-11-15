@@ -90,6 +90,8 @@ def saveApplication(name,
     appdata = Application.objects(
         name=name, package=package, module=module).first()
     lastapp = Application.objects(
+        name=name, package=package, hidden=False).order_by('-version.num').first()
+    latestapp = Application.objects(
         name=name, package=package).order_by('-version.num').first()
     if appdata is None:
         appdata = Application(
@@ -99,13 +101,16 @@ def saveApplication(name,
             discription=discription,
             module=module)
         if lastapp is not None:
-            appdata.version.major = lastapp.version.major
-            appdata.version.minor = lastapp.version.minor
-            appdata.version.micro = lastapp.version.micro + 1
-            appdata.version.num = lastapp.version.num + 1
+            appdata.version.major = latestapp.version.major
+            appdata.version.minor = latestapp.version.minor
+            appdata.version.micro = latestapp.version.micro + 1
+            appdata.version.num = latestapp.version.num + 1
             lastapp.hidden = True
             lastapp.save()
+        appdata.hidden = False
         appdata.save()
+    elif appdata==lastapp:
+        pass
     else:
         if lastapp is not None:
             lastapp.hidden = True
