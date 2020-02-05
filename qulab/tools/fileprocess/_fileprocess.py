@@ -9,7 +9,7 @@ import qulab
 
 
 ## 将数据或者record存储为npz文件
-def save(path=None, name=None, x=None, y=None, z=None, tag=' ', record=None):
+def save(path=None, name=None, x=None, y=None, z=None, tag=' ', record=None, source_type=False):
     if not path:
         time_list = datetime.datetime.now().strftime('%Y-%m-%d-%H-%M-%S')
         time_list = time_list.split('-')
@@ -22,27 +22,33 @@ def save(path=None, name=None, x=None, y=None, z=None, tag=' ', record=None):
         file_path = os.path.join(path,name+'.npz')
     print(file_path)
     if record is None:
-        if x.any() and y.any() and z.any():
-            np.savez(file_path,x=x,y=y,z=z,tag=tag)
-        elif x.any() and y.any():
-            np.savez(file_path,x=x,y=y,tag=tag)
-        elif x.any():
+        if source_type:
             np.savez(file_path,x=x,tag=tag)
         else:
-            assert True,'the data format to be saved is illegal'
+            if x.any() and y.any() and z.any():
+                np.savez(file_path,x=x,y=y,z=z,tag=tag)
+            elif x.any() and y.any():
+                np.savez(file_path,x=x,y=y,tag=tag)
+            elif x.any():
+                np.savez(file_path,x=x,tag=tag)
+            else:
+                assert True,'the data format to be saved is illegal'
     else:
         info = get_record_info(record)
         for item in info:
             tag = tag+'\n'+item+': '+str(info[item])
         data = record.data
-        if len(data)==3:
-            np.savez(file_path,x=data[0],y=data[1],z=data[2],tag=tag)
-        elif len(data)==2:
-            np.savez(file_path,x=data[0],y=data[1],tag=tag)
-        elif len(data)==1:
+        if source_type:
             np.savez(file_path,x=data,tag=tag)
         else:
-            assert True,'the data format to be saved is illegal'
+            if len(data)==3:
+                np.savez(file_path,x=data[0],y=data[1],z=data[2],tag=tag)
+            elif len(data)==2:
+                np.savez(file_path,x=data[0],y=data[1],tag=tag)
+            elif len(data)==1:
+                np.savez(file_path,x=data,tag=tag)
+            else:
+                assert True,'the data format to be saved is illegal'
 
 
 ## 获取record的信息
@@ -91,7 +97,7 @@ def npz2txt(npz_path='',txt_path=''):
 
 
 ## 将record存储为txt文件
-def record2txt(record=None, txt_path='', tag=' ', png=True):
+def record2txt(record=None, txt_path='', tag=' ', png=True, fig_title=None):
     ## 确认输出txt文件的路径和文件名
     if not txt_path:
         assert txt_path,'No output txt file path, please check it!'
@@ -118,50 +124,58 @@ def record2txt(record=None, txt_path='', tag=' ', png=True):
     fid.write('tag: \n')
     fid.write(tag+'\n')
     
-    # 当record数据为data=[x,y,z]格式时
-    if len(np.array(data[len(data)-1]).shape)==2:
-        fid.write('\n'+'data text format:\n')
-        fid.write('000000      y axis\n')
-        fid.write('x axis      z data\n')
-        if len(data)>3:
-            fid.write('!!! This data has more than two parts, for example, PNA outputs have amp and phase. !!!\n')
-        fid.write('\n'+'data begin:\n')
-        for idx_z in range(len(data)-2):
-            fid.write('000000     ')
-            for y in data[1]:
-                fid.write(str(y)+'     ')
-            fid.write('\n')
-            for idx_col in range(len(data[0])):
-                fid.write(str(data[0][idx_col])+'     ')
-                for idx_row in range(len(data[1])):
-                    fid.write(str(data[idx_z+2][idx_row][idx_col])+'     ')
+    try:
+        # 当record数据为data=[x,y,z]格式时
+        if len(np.array(data[len(data)-1]).shape)==2 and len(data)>2:
+            fid.write('\n'+'data text format:\n')
+            fid.write('000000      y axis\n')
+            fid.write('x axis      z data\n')
+            if len(data)>3:
+                fid.write('!!! This data has more than two parts, for example, PNA outputs have amp and phase. !!!\n')
+            fid.write('\n'+'data begin:\n')
+            for idx_z in range(len(data)-2):
+                fid.write('000000     ')
+                for y in data[1]:
+                    fid.write(str(y)+'     ')
                 fid.write('\n')
-            fid.write('\n\n')
-        """
-        for idx in range(len(data)):
-            fid.write('\n'+xyz[idx]+' data:\n')
-            if xyz[idx]=='x' or xyz[idx]=='y':
-                for temp_data in data[idx]:
-                    fid.write(str(temp_data)+'\n')
-            else:
-                row, col = data[idx].shape
-                for idx_row in range(row):
-                    for idx_col in range(col):
-                        fid.write(str(data[idx][idx_row][idx_col])+'   ')
+                for idx_col in range(len(data[0])):
+                    fid.write(str(data[0][idx_col])+'     ')
+                    for idx_row in range(len(data[1])):
+                        fid.write(str(data[idx_z+2][idx_row][idx_col])+'     ')
                     fid.write('\n')
-        """
-    # 当record数据为data=[x,y,y,...]格式时
-    else:
-        for idx in range(len(data)):
-                if idx==0:
-                    fid.write('\n'+'x data:    ')
-                else:
-                    fid.write('y data:    ')
-        fid.write('\n'+'data begin:\n')
-        for n in range(len(data[0])):
+                fid.write('\n\n')
+            """
             for idx in range(len(data)):
-                fid.write(str(data[idx][n])+'    ')
-            fid.write('\n')
+                fid.write('\n'+xyz[idx]+' data:\n')
+                if xyz[idx]=='x' or xyz[idx]=='y':
+                    for temp_data in data[idx]:
+                        fid.write(str(temp_data)+'\n')
+                else:
+                    row, col = data[idx].shape
+                    for idx_row in range(row):
+                        for idx_col in range(col):
+                            fid.write(str(data[idx][idx_row][idx_col])+'   ')
+                        fid.write('\n')
+            """
+        # 当record数据为data=[x,y,y,...]格式时
+        else:
+            for idx in range(len(data)):
+                    if idx==0:
+                        fid.write('\n'+'x data:    ')
+                    else:
+                        fid.write('y data:    ')
+            fid.write('\n'+'data begin:\n')
+            for n in range(len(data[0])):
+                for idx in range(len(data)):
+                    if isinstance(data[idx], np.ndarray):
+                        fid.write(str(data[idx][n])+'    ')
+                    else:
+                        fid.write(str(data[idx])+'    ')
+                fid.write('\n')
+    except IndexError:
+        fid.write('\n'+'\n'+'\n'+'correct data begin:\n')
+        for idx in range(len(data)):
+            fid.write(str(data[idx])+'\n')
     fid.close()
     
     ## 将数据对应的图存储为相同文件名的jpg，以便查看
@@ -174,18 +188,21 @@ def record2txt(record=None, txt_path='', tag=' ', png=True):
         app=getAppClass(name=fullname[1],
                         package=fullname[0],
                         version=version)
-        fig = plt.figure()
+        if fig_title is None:
+            fig = plt.figure()
+        else:
+            fig = plt.figure(fig_title)
         app.plot(fig,record.data)
         plt.savefig(jpg_path)
 
 
 ## 根据输入app的fullname和record的index，删除record数据
-def del_record(fullname='package.app',index=[]):
+def del_record(database='qulab',fullname='package.app',index=[]):
     ## 注意删除record后，用display()看到的index会更新
     ## 参数格式fullname='package.app',index=[*,*,*]
     ## 若index=['all']，则删除fullname对应的所有record
     myclient = pymongo.MongoClient("mongodb://localhost:27017/")
-    mydb = myclient["qulab"]
+    mydb = myclient[database]
     mycol = mydb["record"]
     
     # 由于每删除一条record数据，qulab.query()获取的recordset的index就会变化，
