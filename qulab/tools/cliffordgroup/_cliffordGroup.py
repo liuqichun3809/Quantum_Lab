@@ -181,8 +181,9 @@ class cliffordGroup(GateGroup):
             XY_wd=self.gen_XY(v,pi_len,pi_factor,half_pi_len,half_pi_factor,sRate,TYPE)
             amp=np.max(np.abs(XY_wd.data))
             XY_wd=XY_wd.derivative()
-            amp_drag=np.max(np.abs(XY_wd.data))
-            if amp_drag:
-                XY_wd.data *= (amp/amp_drag)
+            # 将DRAG幅度用MHz表示，以便后续计算DRAG系数a，通常即为（拉比频率/非谐性）
+            XY_wd=1e-6*XY_wd
+            #if 'n' in v:
+            #    XY_wd = -XY_wd
             res_wd=res_wd|XY_wd|buffer_wd
         return res_wd

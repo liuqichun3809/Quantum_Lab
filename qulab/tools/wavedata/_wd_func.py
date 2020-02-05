@@ -112,8 +112,10 @@ def DRAG_wd(wd, a=0.5):
     I = wd
     amp=np.max(np.abs(I.data))
     Q=I.derivative()
-    amp_drag=np.max(np.abs(Q.data))
-    if amp_drag:
-        Q.data *= (amp/amp_drag)
+    # 将DRAG幅度用MHz表示，以便后续计算DRAG系数a，通常即为（拉比频率/非谐性）
+    Q=1e-6*Q
+    #amp_drag=np.max(np.abs(Q.data))
+    #if amp_drag:
+    #    Q.data *= (amp/amp_drag)
     Q *= a
     return I+1j*Q
