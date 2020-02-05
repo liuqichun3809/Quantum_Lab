@@ -101,8 +101,8 @@ class vIQmixer(object):
 
             # 相位校准，等效于进行波形时移，时移大小由相位误差、频率等决定
             # 如果载波频率为0，则不进行相位校准
-            shift_I = _phi_I/(2*np.pi*carry_freq) if not carry_freq==0 else 0
-            shift_Q = _phi_Q/(2*np.pi*carry_freq) if not carry_freq==0 else 0
+            shift_I = _phi_I/abs(2*np.pi*carry_freq) if not carry_freq==0 else 0
+            shift_Q = _phi_Q/abs(2*np.pi*carry_freq) if not carry_freq==0 else 0
 
             # 相位校准，将原插值函数平移后重新采样
             func_I = lambda x: carry_IQ.I().timeFunc(kind='cubic')(x+shift_I)
