@@ -111,7 +111,7 @@ class AlazarTechDigitizer():
             return ret
         return []
 
-    def checkErrors(self, ignores=[]):
+    def checkErrors(self, ignores=[590,]):
         errors = self.errors()
         for e in errors:
             if e[0] in ignores:
@@ -162,7 +162,6 @@ class AlazarTechDigitizer():
                             Slope2=1,
                             Level2=128):
         """Configure the trigger system.
-
         In general, the trigger level code is given by:
             TriggerLevelCode = 128 + 127 * TriggerLevelVolts / InputRangeVolts.
         """
@@ -509,7 +508,7 @@ class AutoDMA:
                                                  int(1000 * self.timeout))
             self.dig.checkErrors()
             yield np.asarray(buff)
-            count += 1
+            count += self.recordsPerBuffer
             if count>=self.repeats and self.repeats>0:
                 break
 
@@ -520,7 +519,7 @@ class AutoDMA:
                                              int(1000 * self.timeout))
             self.dig.checkErrors()
             yield buff.buffer
-            count += 1
+            count += self.recordsPerBuffer
             if count>=self.repeats and self.repeats>0:
                 break
             self.dig.postAsyncBuffer(buff.addr, buff.bytes)
