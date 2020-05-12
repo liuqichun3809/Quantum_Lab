@@ -236,6 +236,7 @@ other_addr = re.compile(r'^(OTHER)::(.*)(|::INSTR)$')
 # 横河仪器的GS系列yokogawa电流源不支持visa的query()
 # 该GS系列设备地址格式为 (GS)([0-9]*)::(.*)，例如 GS200::TCPIP::192.168.0.1，即格式中 (.*) 项为通常的 TCPIP 格式地址
 gs_addr = re.compile(r'^(GS)([0-9]*)::(.*)')
+x6_addr = re.compile(r'^(X6)_(1000M|500M)::DEVICE::([0-9]+)(|::INSTR)$')
 
 def parse_resource_name(addr):
     m = p_addr.search(addr)
@@ -295,9 +296,21 @@ def _parse_gs_resource_name(m, addr):
     model = m.group(1)+m.group(2)
     return dict(type=type, ins=ins, company=company, model=model, addr=addr)
 
+def _parse_x6_resource_name(m, addr):
+    type = m.group(1)
+    model = str(m.group(1)) + '_' + str(m.group(2))
+    deviceID = int(m.group(3))
+    return dict(
+        type=type,
+        ins=None,
+        company='II',
+        model=model,
+        deviceID=deviceID,
+        addr=addr)
+
 def _parse_resource_name(addr):
     type = None
-    for addr_re in [ats_addr,zi_addr,pxi_addr,other_addr,gs_addr]:
+    for addr_re in [ats_addr,zi_addr,pxi_addr,other_addr,gs_addr,x6_addr]:
         m = addr_re.search(addr)
         if m is not None:
             type = m.group(1)
@@ -312,6 +325,8 @@ def _parse_resource_name(addr):
         return _parse_other_resource_name(m, addr)
     elif type == 'GS':
         return _parse_gs_resource_name(m, addr)
+    elif type == 'X6':
+        return _parse_x6_resource_name(m, addr)
     else:
         return dict(type='Visa', addr=addr)
 
