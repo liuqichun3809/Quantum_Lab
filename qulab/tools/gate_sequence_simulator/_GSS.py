@@ -1,3 +1,4 @@
+import re
 import numpy as np
 import matplotlib.pyplot as plt
 
@@ -17,7 +18,7 @@ class GSS(object):
     def get_N(self):
         self.qubit_idx = list()
         self.couple_idx = list()
-        gate_re = re.compile(r'^(S|CP|G|X2p|X2n|Y2p|Y2n|X|Y)(.*)')
+        gate_re = re.compile(r'^(I|S|CP|G|X2p|X2n|Y2p|Y2n|X|Y)(.*)')
         for gate in np.hstack(np.array(self.gate_list)):
             m = gate_re.search(gate)
             if 'S' in gate or 'CP' in gate:
@@ -83,7 +84,7 @@ class GSS(object):
         Y2n = self.get_R_y(theta = -np.pi/2)
         Y = self.get_R_y(theta = np.pi)
         
-        gate_re = re.compile(r'^(S|CP|G|X2p|X2n|Y2p|Y2n|X|Y)(.*)')
+        gate_re = re.compile(r'^(I|S|CP|G|X2p|X2n|Y2p|Y2n|X|Y)(.*)')
         m = gate_re.search(gate)
         if 'S' in gate:
             U = self.get_SWAP(gate)
@@ -185,7 +186,7 @@ class GSS(object):
         return SWAP
     
     def get_qubit_idx_and_theta(self,gate):
-        gate_re = re.compile(r'^(S|CP|G|X2p|X2n|Y2p|Y2n|X|Y)(.*)')
+        gate_re = re.compile(r'^(I|S|CP|G|X2p|X2n|Y2p|Y2n|X|Y)(.*)')
         m = gate_re.search(gate)
         if ':' in m.group(2):
             temp = m.group(2).split(':')[0]
@@ -215,7 +216,7 @@ class GSS(object):
         plt.xticks([])
         plt.yticks([])
         
-        gate_re = re.compile(r'^(S|CP|G|X2p|X2n|Y2p|Y2n|X|Y)(.*)')
+        gate_re = re.compile(r'^(I|S|CP|G|X2p|X2n|Y2p|Y2n|X|Y)(.*)')
         idx = 0
         for gate in self.gate_list:
             idx = idx+1

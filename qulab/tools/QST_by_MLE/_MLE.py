@@ -29,7 +29,7 @@ class MLE(object):
     def do_MLE(self):
         matlab_eng.cd(self.matlab_file_dir)
         meas_data = self.save_meas_data_to_mat()
-        matlab_eng.two_qubit_qst(nargout=0)
+        matlab_eng.N_qubit_qst(nargout=0)
         
     def get_density_mstrix(self):
         result_data_path = os.path.join(mat_file_dir,'MLE_result.mat')
