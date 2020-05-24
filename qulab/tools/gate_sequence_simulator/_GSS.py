@@ -9,6 +9,7 @@ class GSS(object):
         # 其中内部的 [ ] 内门操作表示为同时进行的操作
         # 单比特门最后一个数字表示qubit序号
         # 两比特门 ':' 前的两个数字表示对应两个control和target qubit序号，':'之后的数字 n 表示操作为 pi/n
+        self.gate_re = re.compile(r'^(I|S|CP|G|X2p|X2n|Y2p|Y2n|X|Y|Z[0-9]+:)(.*)')
         self.gate_list = None
         self._N = 1
         self.initial_state = None
@@ -18,7 +19,7 @@ class GSS(object):
     def get_N(self):
         self.qubit_idx = list()
         self.couple_idx = list()
-        gate_re = re.compile(r'^(I|S|CP|G|X2p|X2n|Y2p|Y2n|X|Y)(.*)')
+        gate_re = self.gate_re
         for gate in np.hstack(np.array(self.gate_list)):
             m = gate_re.search(gate)
             if 'S' in gate or 'CP' in gate:
@@ -41,6 +42,10 @@ class GSS(object):
                 temp_idx = m.group(2)
                 if temp_idx not in self.couple_idx:
                     self.couple_idx.append(temp_idx)
+            elif 'Z' in gate:
+                temp_idx = m.group(1)[1:-1]
+                if temp_idx not in self.couple_idx:
+                    self.couple_idx.append(temp_idx)
             else:
                 temp_idx = int(m.group(2))
                 if temp_idx not in self.qubit_idx:
@@ -52,7 +57,7 @@ class GSS(object):
             self.qubitidx_base = 0
         self._N = self.qubit_idx[-1]-self.qubit_idx[0]+1
         # 设置初始态
-        if not isinstance(self.initial_state,np.ndarray):
+        if not isinstance(self.initial_state,np.ndarray) or len(self.initial_state)!=2**self._N:
             self.initial_state = np.zeros([2**self._N,1])
             self.initial_state[0][0] = 1
         return self._N
@@ -84,7 +89,7 @@ class GSS(object):
         Y2n = self.get_R_y(theta = -np.pi/2)
         Y = self.get_R_y(theta = np.pi)
         
-        gate_re = re.compile(r'^(I|S|CP|G|X2p|X2n|Y2p|Y2n|X|Y)(.*)')
+        gate_re = self.gate_re
         m = gate_re.search(gate)
         if 'S' in gate:
             U = self.get_SWAP(gate)
@@ -93,24 +98,28 @@ class GSS(object):
         elif 'G' in gate:
             U = np.eye(2**self._N)
         else:
-            gate = m.group(1)
-            qubit_idx = int(m.group(2))-self.qubit_idx[0]
-            if gate=='I':
-                U = I
-            elif gate=='X2p':
-                U = X2p
-            elif gate=='X2n':
-                U = X2n
-            elif gate=='X':
-                U = X
-            elif gate=='Y2p':
-                U = Y2p
-            elif gate=='Y2n':
-                U = Y2n
-            elif gate=='Y':
-                U = Y
+            if 'Z' in gate:
+                qubit_idx = int(m.group(1)[1:-1])-self.qubit_idx[0]
+                U = self.get_R_z(theta = float(m.group(2))*np.pi)
             else:
-                raise ValueError('the gate "%s" is illegal' %gate)
+                gate = m.group(1)
+                qubit_idx = int(m.group(2))-self.qubit_idx[0]
+                if gate=='I':
+                    U = I
+                elif gate=='X2p':
+                    U = X2p
+                elif gate=='X2n':
+                    U = X2n
+                elif gate=='X':
+                    U = X
+                elif gate=='Y2p':
+                    U = Y2p
+                elif gate=='Y2n':
+                    U = Y2n
+                elif gate=='Y':
+                    U = Y
+                else:
+                    raise ValueError('the gate "%s" is illegal' %gate)
             for n in range(self._N-qubit_idx-1):
                 U = np.kron(I, U)
             for n in range(qubit_idx):
@@ -153,6 +162,12 @@ class GSS(object):
         R_y[1][0] = np.sin(theta/2)
         return R_y
     
+    def get_R_z(self, theta):
+        R_z = np.zeros([2,2])*1j
+        R_z[0][0] = 1
+        R_z[1][1] = np.cos(theta)+1j*np.sin(theta)
+        return R_z
+    
     def get_CP(self,gate):
         CP = np.eye(2**self._N)+0*1j
         control_idx,target_idx,theta = self.get_qubit_idx_and_theta(gate)
@@ -186,7 +201,7 @@ class GSS(object):
         return SWAP
     
     def get_qubit_idx_and_theta(self,gate):
-        gate_re = re.compile(r'^(I|S|CP|G|X2p|X2n|Y2p|Y2n|X|Y)(.*)')
+        gate_re = self.gate_re
         m = gate_re.search(gate)
         if ':' in m.group(2):
             temp = m.group(2).split(':')[0]
@@ -202,7 +217,7 @@ class GSS(object):
     def gate_list_figure(self,with_physical_op=True):
         N = self.get_N()
         length = len(np.array(self.gate_list))+2
-        fig = plt.figure(figsize=[min(length,20),len(self.qubit_idx)])
+        fig = plt.figure(figsize=[min(length,10),len(self.qubit_idx)])
         ax = fig.add_subplot(111)
         x = [i for i in range(length)]
         for idx in self.qubit_idx:
@@ -216,7 +231,7 @@ class GSS(object):
         plt.xticks([])
         plt.yticks([])
         
-        gate_re = re.compile(r'^(I|S|CP|G|X2p|X2n|Y2p|Y2n|X|Y)(.*)')
+        gate_re = self.gate_re
         idx = 0
         for gate in self.gate_list:
             idx = idx+1
@@ -228,6 +243,7 @@ class GSS(object):
                 
                 
     def plot_single_gate(self,fig,ax,idx,gate,with_physical_op):
+        gate_re = self.gate_re
         m = gate_re.search(gate)
         gate_name = m.group(1)
         if ':' in m.group(2):
@@ -247,7 +263,7 @@ class GSS(object):
             else:
                 ax.plot(idx,-control_idx-self.qubit_idx[0],'k.',markersize ='15')
                 ax.plot(idx,-target_idx-self.qubit_idx[0],'k.',markersize ='15')
-                ax.text(idx,-target_idx-self.qubit_idx[0],'$\pi$/'+str(theta_idx),fontsize=15,
+                ax.text(idx,-target_idx-self.qubit_idx[0],'$\pi$/'+str(theta_idx),fontsize=10,
                         bbox=dict(boxstyle='round,pad=0.2', fc='lightgrey', ec='k',lw=1 ,alpha=1.0),
                         verticalalignment="center",
                         horizontalalignment="center")
@@ -261,9 +277,15 @@ class GSS(object):
                         bbox=dict(boxstyle='round,pad=0.2', fc='lightskyblue', ec='k',lw=1 ,alpha=1.0),
                         verticalalignment="center",
                         horizontalalignment="center")
+        elif 'Z' in gate:
+            qubit_idx = int(m.group(1)[1:-1])
+            ax.text(idx,-qubit_idx,'Z'+'$_{%.2f\pi}$'%(float(m.group(2))),fontsize=10,
+                    bbox=dict(boxstyle='round,pad=0.2', fc='white', ec='k',lw=1 ,alpha=1.0),
+                    verticalalignment="center",
+                    horizontalalignment="center")
         else:
             qubit_idx = int(m.group(2))
-            ax.text(idx,-qubit_idx,gate_name,fontsize=15,
+            ax.text(idx,-qubit_idx,gate_name,fontsize=10,
                     bbox=dict(boxstyle='round,pad=0.2', fc='white', ec='k',lw=1 ,alpha=1.0),
                     verticalalignment="center",
                     horizontalalignment="center")
