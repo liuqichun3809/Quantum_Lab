@@ -62,6 +62,7 @@ class Driver(BaseDriver):
         self.set_board_para()
         self.set_adc_para()
         self.set_dac_para()
+        self.set_adc_delay()
     
     def set_board_para(self):
         if self.config['ref_clk_source'] == 'EXTERNAL':
@@ -133,6 +134,9 @@ class Driver(BaseDriver):
             idx = idx+1
         return ch_A,ch_B
     
+    def set_adc_delay(self):
+        x6.write_wishbone_register(baseAddr=2048, offset=3, data=int(self.config['triggerDelay']*16))
+    
     def ManualTrigger(self, trig):
         x6.ManualTrigger(state=trig)
     
@@ -157,3 +161,10 @@ class Driver(BaseDriver):
     
     def get_temperature(self):
         return x6.Temperature()
+    
+    def write_WB(self, baseAddr, offset, data):
+        x6.write_wishbone_register(baseAddr=baseAddr,offset=offset, data=data)
+        
+    def read_WB(self, baseAddr, offset):
+        return x6.read_wishbone_register(baseAddr=baseAddr, offset=offset)
+    

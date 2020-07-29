@@ -1,0 +1,1 @@
+from ._multiprocess_for_single_shot import get_IQ
