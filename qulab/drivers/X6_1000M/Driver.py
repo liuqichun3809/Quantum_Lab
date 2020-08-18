@@ -90,9 +90,10 @@ class Driver(BaseDriver):
         
     def write_dac_wavedata(self,wavedata):
         x6.StartStreaming()
-        x6.EnterPatternMode()
+        #x6.EnterPatternMode()
         x6.write_dac_wavedata(wavedata=wavedata)
-        x6.PatternLoadCommand()
+        #x6.PatternLoadCommand()
+        x6.StopStreaming()
         
     # there is still some bug with this function
     def set_acquire_adc_data_timeout(time_limited): # the timeout unit is 's'
@@ -142,6 +143,9 @@ class Driver(BaseDriver):
     
     def StartStreaming(self):
         x6.StartStreaming()
+        
+    def StopStreaming(self):
+        x6.StopStreaming()
     
     def EnterPatternMode(self):
         x6.EnterPatternMode()
