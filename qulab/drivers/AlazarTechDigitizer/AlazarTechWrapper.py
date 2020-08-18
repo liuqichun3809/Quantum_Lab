@@ -310,7 +310,7 @@ def initialize(dig):
 def configure(
     dig, ARange=1.0, BRange=1.0,
     trigLevel=0.3, triggerDelay=0, triggerTimeout=0,
-    bufferCount=1024,
+    bufferCount=1024, sampleRate=1e9,
     **kw):
     dig.inputControl(API.CHANNEL_A, API.DC_COUPLING, getInputRange(ARange, dig.kind),
                      API.IMPEDANCE_50_OHM)
@@ -330,6 +330,48 @@ def configure(
     dig.setTriggerTimeOut(triggerTimeout)
 
     dig.setParameter(0, API.SETGET_ASYNC_BUFFCOUNT, bufferCount)
+    
+    if sampleRate == 1e9:
+        dig.setCaptureClock(SourceId = API.EXTERNAL_CLOCK_10MHz_REF, SampleRateId = API.SAMPLE_RATE_1GSPS)
+    elif sampleRate == 500e6:
+        dig.setCaptureClock(SourceId = API.INTERNAL_CLOCK, SampleRateId = API.SAMPLE_RATE_500MSPS)
+    elif sampleRate == 250e6:
+        dig.setCaptureClock(SourceId = API.INTERNAL_CLOCK, SampleRateId = API.SAMPLE_RATE_250MSPS)
+    elif sampleRate == 100e6:
+        dig.setCaptureClock(SourceId = API.INTERNAL_CLOCK, SampleRateId = API.SAMPLE_RATE_100MSPS)
+    elif sampleRate == 50e6:
+        dig.setCaptureClock(SourceId = API.INTERNAL_CLOCK, SampleRateId = API.SAMPLE_RATE_50MSPS)
+    elif sampleRate == 20e6:
+        dig.setCaptureClock(SourceId = API.INTERNAL_CLOCK, SampleRateId = API.SAMPLE_RATE_20MSPS)
+    elif sampleRate == 10e6:
+        dig.setCaptureClock(SourceId = API.INTERNAL_CLOCK, SampleRateId = API.SAMPLE_RATE_10MSPS)
+    elif sampleRate == 5e6:
+        dig.setCaptureClock(SourceId = API.INTERNAL_CLOCK, SampleRateId = API.SAMPLE_RATE_5MSPS)
+    elif sampleRate == 2e6:
+        dig.setCaptureClock(SourceId = API.INTERNAL_CLOCK, SampleRateId = API.SAMPLE_RATE_2MSPS)
+    elif sampleRate == 1e6:
+        dig.setCaptureClock(SourceId = API.INTERNAL_CLOCK, SampleRateId = API.SAMPLE_RATE_1MSPS)
+    elif sampleRate == 500e3:
+        dig.setCaptureClock(SourceId = API.INTERNAL_CLOCK, SampleRateId = API.SAMPLE_RATE_500KSPS)
+    elif sampleRate == 200e3:
+        dig.setCaptureClock(SourceId = API.INTERNAL_CLOCK, SampleRateId = API.SAMPLE_RATE_200KSPS)
+    elif sampleRate == 100e3:
+        dig.setCaptureClock(SourceId = API.INTERNAL_CLOCK, SampleRateId = API.SAMPLE_RATE_100KSPS)
+    elif sampleRate == 50e3:
+        dig.setCaptureClock(SourceId = API.INTERNAL_CLOCK, SampleRateId = API.SAMPLE_RATE_50KSPS)
+    elif sampleRate == 20e3:
+        dig.setCaptureClock(SourceId = API.INTERNAL_CLOCK, SampleRateId = API.SAMPLE_RATE_20KSPS)
+    elif sampleRate == 10e3:
+        dig.setCaptureClock(SourceId = API.INTERNAL_CLOCK, SampleRateId = API.SAMPLE_RATE_10KSPS)
+    elif sampleRate == 5e3:
+        dig.setCaptureClock(SourceId = API.INTERNAL_CLOCK, SampleRateId = API.SAMPLE_RATE_5KSPS)
+    elif sampleRate == 2e3:
+        dig.setCaptureClock(SourceId = API.INTERNAL_CLOCK, SampleRateId = API.SAMPLE_RATE_2KSPS)
+    elif sampleRate == 1e3:
+        dig.setCaptureClock(SourceId = API.INTERNAL_CLOCK, SampleRateId = API.SAMPLE_RATE_1KSPS)
+    else:
+        dig.setCaptureClock(SourceId = API.EXTERNAL_CLOCK_10MHz_REF, SampleRateId = API.SAMPLE_RATE_1GSPS)
+        print('The sample rate is not avalable, it has been set to 1GS/s')
 
 
 class DMABuffer:

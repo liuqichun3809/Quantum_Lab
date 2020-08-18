@@ -95,7 +95,7 @@ class Driver(BaseDriver):
 
         if any(key in [
                 'ARange', 'BRange', 'trigLevel', 'triggerDelay',
-                'triggerTimeout','bufferCount',
+                'triggerTimeout','bufferCount', 'sampleRate',
         ] for key in cmd):
             configure(self.handle, **self.config)
 
@@ -133,7 +133,7 @@ class Driver(BaseDriver):
                         repeats=repeats,
                         buffers=None,
                         recordsPerBuffer=recordsPerBuffer,
-                        timeout=1):
+                        timeout=self.config['triggerTimeout']):
                     A_lst = chA.reshape((recordsPerBuffer, samplesPerRecord))
                     B_lst = chB.reshape((recordsPerBuffer, samplesPerRecord))
                     if fft:
