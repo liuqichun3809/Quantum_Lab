@@ -97,6 +97,69 @@ class Sin_Fit(BaseFit):
         return y
 
 
+class LRZ_Fit(BaseFit):
+    """Lorenz Fit, fit_tag can be 'real', 'imag' or 'amp' """
+    def __init__(self, data, fit_tag='real', **kw):
+        super(BaseFit, self).__init__()
+        self.data=np.array(data)
+        self.fit_tag = fit_tag
+        self._Fitcurve(**kw)
+
+    def _fitfunc(self, t, f_center, kappa_int, kappa_ext):
+        # when fitting the amp, kappa_ext is the amp, kappa_int is the real kappa
+        if self.fit_tag == 'real':
+            y=1-2*kappa_ext/((kappa_int+kappa_ext)*(1+(2*(t-f_center)/(kappa_int+kappa_ext))**2))
+        elif self.fit_tag == 'imag':
+            y=2*kappa_ext*(2*(t-f_center)/(kappa_int+kappa_ext))/((kappa_int+kappa_ext)*(1+(2*(t-f_center)/(kappa_int+kappa_ext))**2))
+        else:
+            y=kappa_ext*kappa_int**2/(4*(t-f_center)**2+kappa_int**2)
+        return y
+
+    def _Fitcurve(self, **kw):
+        t,y=self.data
+        popt, pcov=curve_fit(self._fitfunc, t, y, maxfev=100000, **kw)
+        self._popt = popt
+        self._pcov = pcov
+        self._error = np.sqrt(np.diag(pcov))
+
+    def plot(self, fmt2='k--',
+                   kw1={},
+                   kw2={}):
+        ax = plt.gca()
+        t,y=self.data
+        scatter_kw={'marker':'o','color':'','edgecolors':'r'}
+        scatter_kw.update(kw1)
+        ax.scatter(t, y, **scatter_kw)
+        plot_kw={}
+        plot_kw.update(kw2)
+        ax.plot(t, self._fitfunc(t,*self._popt), fmt2, **plot_kw)
+
+    @property
+    def error(self):
+        '''standard deviation errors on the parameters '''
+        return self._error
+
+    @property
+    def params(self):
+        '''optimized parameters '''
+        return self._popt
+    
+    @property
+    def f_center(self):
+        f_center, kappa_int, kappa_ext = self._popt
+        return f_center
+    
+    @property
+    def kappa_int(self):
+        f_center, kappa_int, kappa_ext = self._popt
+        return kappa_int
+    
+    @property
+    def kappa_ext(self):
+        f_center, kappa_int, kappa_ext = self._popt
+        return kappa_ext
+
+
 class RBM_Fit(BaseFit):
     '''Randomized Benchmarking Fit'''
 
