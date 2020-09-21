@@ -48,7 +48,8 @@ def save(path=None, name=None, x=None, y=None, z=None, tag=' ', record=None, sou
             elif len(data)==1:
                 np.savez(file_path,x=data,tag=tag)
             else:
-                assert True,'the data format to be saved is illegal'
+                np.savez(file_path,x=data[0],y=data[1:],tag=tag)
+                #assert True,'the data format to be saved is illegal'
 
 
 ## 获取record的信息
@@ -57,7 +58,8 @@ def get_record_info(Record):
                    'finished time': str(Record.finished_time),
                    'title': str(Record.title),
                    'tags': str(Record.tags),
-                   'parameters': str(Record.params)}
+                   'parameters': str(Record.params),
+                   'settings':str(Record.settings)}
     return information
 
 
@@ -194,6 +196,29 @@ def record2txt(record=None, txt_path='', tag=' ', png=True, fig_title=None):
             fig = plt.figure(fig_title)
         app.plot(fig,record.data)
         plt.savefig(jpg_path)
+
+        
+## 将record存储为npz和txt文件
+def record_to_npz_and_txt(path=None, name=None, tag=' ', record=None, png=True, fig_title=None):
+    info = get_record_info(record)
+    save(path=path, name=name, tag=tag, record=record)
+    npz2txt(npz_path=os.path.join(path,name)+'.npz',txt_path=os.path.join(path,name)+'.txt')
+    ## 将数据对应的图存储为相同文件名的jpg，以便查看
+    if png:
+        title = info['title']
+        title = title.split(' ')
+        fullname = title[2].split('.')
+        version = title[3][2:-1]
+        
+        app=getAppClass(name=fullname[1],
+                        package=fullname[0],
+                        version=version)
+        if fig_title is None:
+            fig = plt.figure()
+        else:
+            fig = plt.figure(fig_title)
+        app.plot(fig,record.data)
+        plt.savefig(os.path.join(path,name)+'.png')
 
 
 ## 根据输入app的fullname和record的index，删除record数据
