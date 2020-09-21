@@ -62,9 +62,26 @@ class Driver(BaseDriver):
         QReal('Bandwidth', value=1e3, unit='Hz',
           set_cmd='SENS:SPEC:BAND:RES %(value)f',
           get_cmd='SENS:SPEC:BAND:RES?'),
+        QReal('Acquire_Bandwidth', value=1e3, unit='Hz',set_cmd='SENS:ACQ:BAND %(value)f'),
+        QOption('Acquire_mode', set_cmd='SENS:ACQ:MODE %(option)s',
+            options = [
+                ('samples', 'SAMP'),
+                ('length', 'LENG')]),
+        QReal('Acquire_length', value=1e-3, unit='s',
+          set_cmd='SENS:ACQ:SEC %(value)f',
+          get_cmd='SENS:ACQ:SEC?'),
+        QReal('Analysis_length', value=1e-3, unit='s',
+          set_cmd='SENS:ANAL:LENG %(value)f',
+          get_cmd='SENS:ANAL:LENG?'),
         QReal('Spectrum_length', value=1e-3, unit='s',
           set_cmd='SENS:SPEC:LENG %(value)f',
           get_cmd='SENS:SPEC:LENG?'),
+        QOption('IQ_points', set_cmd='SENS:IQVT:MAXT %(option)s',
+            options = [
+                ('1k', 'ONEK'),
+                ('10k', 'TENK'),
+                ('100k', 'HUND'),
+                ('max', 'NEV')]),
         QOption('Mode', set_cmd='INIT:CONT %(option)s', get_cmd='INIT:CONT?',
             options = [
                 ('Continus', 'ON'),
@@ -117,7 +134,7 @@ class Driver(BaseDriver):
         time_list = np.linspace(1,len(I),len(I))/5
         fit = Sin_Fit((time_list,I))
         A, B, w, phi = fit._popt
-        print(freq)
-        print(0.5*w/np.pi)
+        #print(freq)
+        #print(0.5*w/np.pi)
         time_list = time_list*(0.5*w/np.pi/freq)
         return [time_list, I, Q]
