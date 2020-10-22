@@ -144,7 +144,7 @@ class cliffordGroup(GateGroup):
                 elif index=='X':
                     pulse_wd_IQ=pi_factor*TYPE(pi_len,sRate)
                 elif index=='Y':
-                    pulse_wd_IQ=1j*pi_factor*TYPE(pi_len,sRate)
+                    pulse_wd_IQ=-1j*pi_factor*TYPE(pi_len,sRate)
         else:
                 if index[0]=='X':
                     if index[2]=='p':
@@ -153,9 +153,9 @@ class cliffordGroup(GateGroup):
                         pulse_wd_IQ=-half_pi_factor*TYPE(half_pi_len,sRate)
                 elif index[0]=='Y':
                     if index[2]=='p':
-                        pulse_wd_IQ=1j*half_pi_factor*TYPE(half_pi_len,sRate)
-                    else:
                         pulse_wd_IQ=-1j*half_pi_factor*TYPE(half_pi_len,sRate)
+                    else:
+                        pulse_wd_IQ=1j*half_pi_factor*TYPE(half_pi_len,sRate)
         return pulse_wd_IQ
 
     def rbm_wd(self, indexseq, pi_array, sRate, buffer=0, TYPE=Gaussian2, check=False):
