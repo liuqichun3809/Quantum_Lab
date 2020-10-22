@@ -81,7 +81,7 @@ def npz2txt(npz_path='',txt_path=''):
     
     ## 将数据写入txt文件
     fid = open(txt_path,'w+')
-    data = np.load(npz_path)
+    data = np.load(npz_path,allow_pickle=True)
     for item in data:
         fid.write('\n'+item+' data:\n')
         if item=='x' or item=='y':
