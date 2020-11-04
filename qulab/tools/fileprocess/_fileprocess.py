@@ -20,7 +20,7 @@ def save(path=None, name=None, x=None, y=None, z=None, tag=' ', record=None, sou
         file_path = os.path.join(path, name)
     else:
         file_path = os.path.join(path,name+'.npz')
-    print(file_path)
+    #print(file_path)
     if record is None:
         if source_type:
             np.savez(file_path,x=x,tag=tag)
@@ -48,7 +48,7 @@ def save(path=None, name=None, x=None, y=None, z=None, tag=' ', record=None, sou
             elif len(data)==1:
                 np.savez(file_path,x=data,tag=tag)
             else:
-                np.savez(file_path,x=data[0],y=data[1:],tag=tag)
+                np.savez(file_path,data=[data,tag],tag=tag)
                 #assert True,'the data format to be saved is illegal'
 
 
