@@ -51,6 +51,18 @@ class AWGBoardDefines:
     CNFG4_CH1_RD_BACK = 8
     CNFG4_CH2_RD_BACK = 9
 
+    AWG_CMD_CONTINUE    = 0x0 << 11
+    AWG_CMD_COUNT       = 0x4 << 11
+    AWG_CMD_TRIG        = 0x8 << 11
+    AWG_CMD_NULL_CNT    = 0x5 << 11
+    AWG_CMD_NULL_TRIG   = 0x3 << 11
+    AWG_CMD_WAIT_DDR    = 0x9 << 11
+    AWG_CMD_READ2RAM    = 0xA << 11
+    AWG_CMD_READ2FIFO   = 0xB << 11
+    AWG_CMD_NULL_LOOP_S = 0x6 << 11
+    AWG_CMD_NULL_LOOP_E = 0x7 << 11
+    
+
     STAT_SUCCESS = 0x0
     STAT_ERROR = 0x1
     STAT_CMDERR = 0x2

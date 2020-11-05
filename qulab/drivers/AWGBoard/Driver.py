@@ -11,8 +11,8 @@ class Driver(BaseDriver):
         QInteger('Output',value=0,ch=1,),
         ]
 
-    def __init__(self, addr, **kw):
-        super().__init__(addr, **kw)
+    def __init__(self, **kw):
+        super().__init__(**kw)
         
     def __del__(self):
         self.handle.disconnect()
@@ -51,11 +51,16 @@ class Driver(BaseDriver):
 
     def setWaveform(self,
                     points,
+                    mark=[],
                     ch=1,
                     wtype='trig',
                     delay=0,
                     is_continue=False):
-        wlist = [self.handle.gen_wave_unit(points, wtype, delay)]
+        if len(mark):
+            self.handle.mark_is_in_wave = True
+        else:
+            self.handle.mark_is_in_wave = False
+        wlist = [self.handle.gen_wave_unit(points, wtype, delay, mark)]
         self.handle.wave_compile(ch, wlist, is_continue=is_continue)
         for index, on in enumerate(self._output_status):
             if on:
