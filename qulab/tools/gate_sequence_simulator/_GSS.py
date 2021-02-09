@@ -181,23 +181,53 @@ class GSS(object):
     def get_SWAP(self,gate):
         SWAP = np.eye(2**self._N)+0*1j
         control_idx,target_idx,theta = self.get_qubit_idx_and_theta(gate)
+        idx_list=[]
         for idx in range(2**self._N):
             m_idx_bin = bin(idx)[2:]
+            for num_0 in range(int(self._N-len(m_idx_bin))):
+                m_idx_bin = '0'+m_idx_bin
             if len(m_idx_bin) > control_idx and len(m_idx_bin) > target_idx:
                 if theta == np.pi/1:
-                    if (m_idx_bin[control_idx]==0 and m_idx_bin[target_idx]==1):
+                    if (m_idx_bin[int(self._N-1-control_idx)]=='0' 
+                        and m_idx_bin[int(self._N-1-target_idx)]=='1'):
                         SWAP[idx][idx] = 0
-                        SWAP[idx][idx+1] = 1j
-                    elif (m_idx_bin[control_idx]==1 and m_idx_bin[target_idx]==0):
+                        idx_list.append(idx)
+                    elif (m_idx_bin[int(self._N-1-control_idx)]=='1' 
+                          and m_idx_bin[int(self._N-1-target_idx)]=='0'):
                         SWAP[idx][idx] = 0
-                        SWAP[idx][idx-1] = 1j
+                        idx_list.append(idx)
                 else:
-                    if (m_idx_bin[control_idx]==0 and m_idx_bin[target_idx]==1):
+                    if (m_idx_bin[int(self._N-1-control_idx)]=='0' 
+                        and m_idx_bin[int(self._N-1-target_idx)]=='1'):
                         SWAP[idx][idx] = 1/np.sqrt(2)
-                        SWAP[idx][idx+1] = 1j/np.sqrt(2)
-                    elif (m_idx_bin[control_idx]==1 and m_idx_bin[target_idx]==0):
+                        idx_list.append(idx)
+                    elif (m_idx_bin[int(self._N-1-control_idx)]=='1' 
+                          and m_idx_bin[int(self._N-1-target_idx)]=='0'):
                         SWAP[idx][idx] = 1/np.sqrt(2)
-                        SWAP[idx][idx-1] = 1j/np.sqrt(2)
+                        idx_list.append(idx)
+            for n in range(len(idx_list)):
+                temp_idx_n = bin(idx_list[n])[2:]
+                for num_0 in range(int(self._N-len(temp_idx_n))):
+                    temp_idx_n = '0'+temp_idx_n
+                temp_idx_n = list(temp_idx_n)
+                temp_idx_n[self._N-1-control_idx] = '1'
+                temp_idx_n[self._N-1-target_idx] = '1'
+                temp_idx_n =''.join(temp_idx_n)
+                for idx in idx_list[n+1:]:
+                    temp_idx = bin(idx)[2:]
+                    for num_0 in range(int(self._N-len(temp_idx))):
+                        temp_idx = '0'+temp_idx
+                    temp_idx = list(temp_idx)
+                    temp_idx[self._N-1-control_idx] = '1'
+                    temp_idx[self._N-1-target_idx] = '1'
+                    temp_idx =''.join(temp_idx)
+                    if temp_idx_n==temp_idx:
+                        if theta == np.pi/1:
+                            SWAP[idx_list[n]][idx] = 1j
+                            SWAP[idx][idx_list[n]] = 1j
+                        else:
+                            SWAP[idx_list[n]][idx] = 1j/np.sqrt(2)
+                            SWAP[idx][idx_list[n]] = 1j/np.sqrt(2)
         return SWAP
     
     def get_qubit_idx_and_theta(self,gate):
