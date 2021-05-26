@@ -90,9 +90,9 @@ class Driver(BaseDriver):
         
     def write_dac_wavedata(self,wavedata):
         x6.StartStreaming()
-        #x6.EnterPatternMode()
+        x6.EnterPatternMode()
         x6.write_dac_wavedata(wavedata=wavedata)
-        #x6.PatternLoadCommand()
+        x6.PatternLoadCommand()
         x6.StopStreaming()
         
     # there is still some bug with this function
@@ -122,6 +122,7 @@ class Driver(BaseDriver):
         x6.StopStreaming()
         x6.StartStreaming()
         #x6.do_trigger(trig_n=self.trig_n) #only for manual soft trigger test
+        time.sleep(2)
         data = np.array(x6.read_adc_data())
         data = data.reshape(self.config['repeats']*2,self.config['n']+16)
         ch_A = np.zeros((self.config['repeats'],self.config['n']))
