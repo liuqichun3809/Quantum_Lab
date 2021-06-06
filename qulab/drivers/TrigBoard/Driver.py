@@ -45,7 +45,7 @@ class Driver(BaseDriver):
         ch为通道编号，从1开始，设置为0表示所有通道；
         """
         self.handle.set_internal_trig(channel=ch, freq=freq, offet_time =delay, count=count, width=width)
-        self..handle.start_internal_trig()
+        self.handle.start_internal_trig()
         # 记录设置的参数
         self.quants[0].value=freq
         self.quants[0].ch=ch

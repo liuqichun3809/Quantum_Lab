@@ -3,6 +3,7 @@ from . import AWGboard
 
 
 class Driver(BaseDriver):
+    support_models = ['MF_AWG',]
 
     CHs=[1,2,3,4]
     quants = [
