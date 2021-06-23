@@ -87,12 +87,14 @@ def npz2txt(npz_path='',txt_path=''):
         if item=='x' or item=='y':
             for temp_data in data[item]:
                 fid.write(str(temp_data)+'\n')
-        elif item=='z':
-            row, col = data[item].shape
-            for idx_row in range(row):
-                for idx_col in range(col):
-                    fid.write(str(data[item][idx_row][idx_col])+'   ')
-                fid.write('\n')
+        #elif item=='z':
+        #    shape = data[item].shape
+        #    row = shape[0]
+        #    col = shape[1]
+        #    for idx_row in range(row):
+        #        for idx_col in range(col):
+        #            fid.write(str(data[item][idx_row][idx_col])+'   ')
+        #        fid.write('\n')
         else:
             fid.write(str(data[item]))
     fid.close()
