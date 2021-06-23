@@ -89,11 +89,11 @@ class Driver(BaseDriver):
         x6.set_DacActiveChannel(self.config['dac_outchannel'])
         
     def write_dac_wavedata(self,wavedata):
-        x6.StartStreaming()
-        x6.EnterPatternMode()
+        #x6.StartStreaming()
+        #x6.EnterPatternMode()
         x6.write_dac_wavedata(wavedata=wavedata)
-        x6.PatternLoadCommand()
-        x6.StopStreaming()
+        #x6.PatternLoadCommand()
+        #x6.StopStreaming()
         
     # there is still some bug with this function
     def set_acquire_adc_data_timeout(time_limited): # the timeout unit is 's'
@@ -122,7 +122,7 @@ class Driver(BaseDriver):
         x6.StopStreaming()
         x6.StartStreaming()
         #x6.do_trigger(trig_n=self.trig_n) #only for manual soft trigger test
-        time.sleep(2)
+        time.sleep(self.config['repeats']/200)
         data = np.array(x6.read_adc_data())
         data = data.reshape(self.config['repeats']*2,self.config['n']+16)
         ch_A = np.zeros((self.config['repeats'],self.config['n']))
@@ -137,7 +137,7 @@ class Driver(BaseDriver):
         return ch_A,ch_B
     
     def set_adc_delay(self):
-        x6.write_wishbone_register(baseAddr=2048, offset=3, data=int(self.config['triggerDelay']*16))
+        x6.write_wishbone_register(baseAddr=2048, offset=3, data=int(self.config['triggerDelay']/4*16))
     
     def ManualTrigger(self, trig):
         x6.ManualTrigger(state=trig)
