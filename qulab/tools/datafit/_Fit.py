@@ -1,6 +1,10 @@
 import numpy as np
+from scipy import stats
+import matplotlib.ticker as ticker
+from scipy.constants import hbar
 import matplotlib.pyplot as plt
 from scipy.optimize import curve_fit
+
 
 
 class BaseFit(object):
@@ -159,6 +163,210 @@ class LRZ_Fit(BaseFit):
         f_center, kappa_int, kappa_ext = self._popt
         return kappa_ext
 
+# S参数曲线拟合
+class S_Fit(BaseFit):
+    def __init__(self, data, fit_tag='S11',**kw):
+        super(BaseFit, self).__init__()
+        self.data=np.array(data)
+        self.fit_tag=fit_tag
+        
+        ## 初步处理
+        # 幅度归一
+        self.A = max(abs(self.data[1]))
+        self.data[1] = self.data[1]/self.A
+        # 去除线路延时
+        self.get_delay()
+        self.cancel_delay()
+        
+        ## 主体拟合，获取幅度A、阻抗失配phi、线宽kappa_ext和kappa_int、谐振频率f_c
+        # 获取初始拟合值
+        self.data[0] = abs(self.data[0])
+        if 'p0' in kw:
+            p0 = kw['p0']
+        else:
+            A = 1
+            alpha = 0
+            delay = 0
+            phi = 0
+            kappa_ext = abs(self.data[0][-1]-self.data[0][0])/10
+            kappa_int = kappa_ext
+            f_c = abs(self.data[0][0]+self.data[0][-1])/2
+            p0 = [A,alpha,delay,phi,kappa_ext,kappa_int,f_c]
+        self._Fitcurve(p0=p0)
+        
+        ## 相位拟合，获取准确初始相位alpha，延迟delay
+        # 获取初始拟合值
+        if 'p0' in kw:
+            p0 = kw['p0']
+        else:
+            A = self._popt[0]
+            alpha = 0
+            delay = 0
+            phi = self._popt[3]
+            kappa_ext = self._popt[4]
+            kappa_int = self._popt[5]
+            f_c = self._popt[6]
+            p0 = [A,alpha,delay,phi,kappa_ext,kappa_int,f_c]
+        self._Fitcurve_phase(p0=p0)
+        
+        ## 将线性标准化
+        self.normalization()
+    
+    ## 主体拟合
+    def _fitfunc(self,t,A,alpha,delay,phi,kappa_ext,kappa_int,f_c):
+        if 'S11' in self.fit_tag:
+            S = A*np.exp(1j*alpha)*np.exp(-2*np.pi*1j*t*delay)*(1-(kappa_ext/(kappa_ext+kappa_int)*np.exp(1j*phi)/(1+2*1j*(f_c/(kappa_ext+kappa_int))*(t/f_c-1))))
+        else:
+            S = A*np.exp(1j*alpha)*np.exp(-2*np.pi*1j*t*delay)*(kappa_ext/(kappa_ext+kappa_int)*np.exp(1j*phi)/(1+2*1j*(f_c/(kappa_ext+kappa_int))*(t/f_c-1)))
+        return abs(S)
+    
+    def _Fitcurve(self, **kw):
+        t,y=self.data
+        y = abs(y)
+        popt, pcov=curve_fit(self._fitfunc, t, y, maxfev=100000, **kw)
+        self._popt = popt
+        self._pcov = pcov
+        self._error = np.sqrt(np.diag(pcov))
+    
+    ## 相位拟合，获取准确初始相位alpha，延迟delay
+    def _fitfunc_phase(self,t,A,alpha,delay,phi,kappa_ext,kappa_int,f_c):
+        if 'S11' in self.fit_tag:
+            S = A*np.exp(1j*alpha)*np.exp(-2*np.pi*1j*t*delay)*(1-(kappa_ext/(kappa_ext+kappa_int)*np.exp(1j*phi)/(1+2*1j*(f_c/(kappa_ext+kappa_int))*(t/f_c-1))))
+        else:
+            S = A*np.exp(1j*alpha)*np.exp(-2*np.pi*1j*t*delay)*(kappa_ext/(kappa_ext+kappa_int)*np.exp(1j*phi)/(1+2*1j*(f_c/(kappa_ext+kappa_int))*(t/f_c-1)))
+        return np.unwrap(np.angle(S))
+    
+    def _Fitcurve_phase(self, **kw):
+        t,y=self.data
+        y = np.unwrap(np.angle(y))
+        popt, pcov=curve_fit(self._fitfunc_phase, t, y, maxfev=100000, **kw)
+        self._popt_phase = popt
+        self._pcov_phase = pcov
+        self._error_phase = np.sqrt(np.diag(pcov))
+    
+    ## 获取初始延时
+    def get_delay(self):
+        f_para = self.data[0]
+        S_para = self.data[1]
+        phase = np.unwrap(np.angle(S_para))
+        gradient, intercept, r_value, p_value, std_err = stats.linregress(abs(f_para),phase)
+        self.delay = gradient/(np.pi*2.)
+        return self.delay
+    
+    ## 去除延时
+    def cancel_delay(self):
+        self.data[1] = self.data[1]*np.exp(-2*1j*np.pi*(-self.delay)*self.data[0])
+        return self.data
+    
+    ## 将线形标准化
+    def normalization(self):
+        self.data[1] = self.data[1]/self._popt[0]*np.exp(-1j*self._popt_phase[1])*np.exp(2*np.pi*1j*self.data[0]*self._popt_phase[2])
+        return self.data
+    
+    def S_fit_result(self,t,A,alpha,delay,phi,kappa_ext,kappa_int,f_c):
+        if 'S11' in self.fit_tag:
+            S = A*np.exp(1j*alpha)*np.exp(-2*np.pi*1j*t*delay)*(1-(kappa_ext/(kappa_ext+kappa_int)*np.exp(1j*phi)/(1+2*1j*(f_c/(kappa_ext+kappa_int))*(t/f_c-1))))
+        else:
+            S = A*np.exp(1j*alpha)*np.exp(-2*np.pi*1j*t*delay)*(kappa_ext/(kappa_ext+kappa_int)*np.exp(1j*phi)/(1+2*1j*(f_c/(kappa_ext+kappa_int))*(t/f_c-1)))
+        return S
+    
+    def get_single_photon_limit(self,unit='dBm'):
+        fr = self.params[6]
+        k_c = 2*np.pi*self.params[4]
+        k_i = 2*np.pi*self.params[5]
+        if unit=='dBm':
+            return 10.*np.log10(1000./(4.*k_c/(2.*np.pi*hbar*fr*(k_c+k_i)**2)))
+        else:
+            return 1./(4.*k_c/(2.*np.pi*hbar*fr*(k_c+k_i)**2))
+        
+    def get_photons_in_resonator(self,power,unit='dBm',diacorr=True):
+        if unit=='dBm':
+            power = 10**(power/10.) /1000.
+        fr = self.params[6]
+        k_c = 2*np.pi*self.params[4]
+        k_i = 2*np.pi*self.params[5]
+        return 4.*k_c/(2.*np.pi*hbar*fr*(k_c+k_i)**2) * power 
+    
+    def plot(self,fig):
+        t,y=self.data
+        S_result = self.S_fit_result(t,1,0,0,self._popt[3],self._popt[4],self._popt[5],self._popt[6])
+        # 绘图
+        ax1 = fig.add_subplot(221)
+        ax1.plot(np.real(y),np.imag(y),'ro')
+        ax1.plot(np.real(S_result),np.imag(S_result),'b-')
+        ax1.set_xlabel('Re(S21)')
+        ax1.set_ylabel('Im(S21)')
+        ax2 = fig.add_subplot(222)
+        ax2.plot(t/1e9,abs(y),'ro')
+        ax2.plot(t/1e9,abs(S_result),'b-')
+        ax2.xaxis.set_major_formatter(ticker.FormatStrFormatter('%.3f'))
+        ax2.set_xlabel('freq(GHz)')
+        ax2.set_ylabel('|S21|')
+        ax3 = fig.add_subplot(223)
+        ax3.plot(t/1e9,np.unwrap(np.angle(y)),'ro')
+        ax3.plot(t/1e9,np.unwrap(np.angle(S_result)),'b-')
+        ax3.xaxis.set_major_formatter(ticker.FormatStrFormatter('%.3f'))
+        ax3.set_xlabel('freq(GHz)')
+        ax3.set_ylabel('phase')
+        ax4 = fig.add_subplot(224)
+        ax4.plot([-0.5,1.5],[-0.5,1.5],'.')
+        ax4.set_xlim(0,1)
+        ax4.set_ylim(0,1)
+        ax4.set_xticks(ticks=[])
+        ax4.set_yticks(ticks=[])
+        ax4.text(0.5,0.9,'f = '+str(round(self.params[6]/1e9,6))+'GHz',verticalalignment='center',horizontalalignment='center')
+        ax4.text(0.5,0.75,'Q_int = '+str(round(self.params[6]/self.params[5]/1e3,1))+'k',verticalalignment='center',horizontalalignment='center')
+        ax4.text(0.5,0.6,'kappa_int = '+str(round(self.params[5]/1e3,1))+'kHz',verticalalignment='center',horizontalalignment='center')
+        ax4.text(0.5,0.45,'kappa_ext = '+str(round(self.params[4]/1e3,1))+'kHz',verticalalignment='center',horizontalalignment='center')
+        ax4.text(0.5,0.3,'delay = '+str(round(self.params[2]*1e9,1))+'ns',verticalalignment='center',horizontalalignment='center')
+        ax4.text(0.5,0.15,'mis-match = '+str(round(self.params[3],3)),verticalalignment='center',horizontalalignment='center')
+        
+        """
+        plt.subplot(221)
+        plt.plot(np.real(y),np.imag(y),'ro')
+        plt.plot(np.real(S_result),np.imag(S_result),'b-')
+        plt.xlabel('Re(S21)')
+        plt.ylabel('Im(S21)')
+        plt.legend()
+        plt.subplot(222)
+        plt.plot(t/1e9,abs(y),'ro')
+        plt.plot(t/1e9,abs(S_result),'b-')
+        plt.gca().xaxis.set_major_formatter(ticker.FormatStrFormatter('%.3f'))
+        plt.xlabel('freq(GHz)')
+        plt.ylabel('|S21|')
+        plt.legend()
+        plt.subplot(223)
+        plt.plot(t/1e9,np.unwrap(np.angle(y)),'ro')
+        plt.plot(t/1e9,np.unwrap(np.angle(S_result)),'b-')
+        plt.gca().xaxis.set_major_formatter(ticker.FormatStrFormatter('%.3f'))
+        plt.xlabel('freq(GHz)')
+        plt.ylabel('phase')
+        plt.legend()
+        plt.subplot(224)
+        plt.plot([-0.5,1.5],[-0.5,1.5],'.')
+        plt.xlim(0,1)
+        plt.ylim(0,1)
+        plt.xticks(ticks=[])
+        plt.yticks(ticks=[])
+        plt.text(0.5,0.9,'f = '+str(round(self.params[6]/1e9,6))+'GHz',verticalalignment='center',horizontalalignment='center')
+        plt.text(0.5,0.75,'Q_int = '+str(round(self.params[6]/self.params[5]/1e3,1))+'k',verticalalignment='center',horizontalalignment='center')
+        plt.text(0.5,0.6,'kappa_int = '+str(round(self.params[5]/1e3,1))+'kHz',verticalalignment='center',horizontalalignment='center')
+        plt.text(0.5,0.45,'kappa_ext = '+str(round(self.params[4]/1e3,1))+'kHz',verticalalignment='center',horizontalalignment='center')
+        plt.text(0.5,0.3,'delay = '+str(round(self.params[2]*1e9,1))+'ns',verticalalignment='center',horizontalalignment='center')
+        plt.text(0.5,0.15,'mis-match = '+str(round(self.params[3],3)),verticalalignment='center',horizontalalignment='center')
+        plt.show()
+        """
+
+    @property
+    def error(self):
+        '''standard deviation errors on the parameters '''
+        return [self._error[0],self._error_phase[1],self._error_phase[2],self._error[3],self._error[4],self._error[5],self._error[6]]
+
+    @property
+    def params(self):
+        '''optimized parameters '''
+        return [self._popt[0]*self.A,self._popt_phase[1],self._popt_phase[2]+self.delay,self._popt[3],self._popt[4],self._popt[5],self._popt[6]]    
+    
 
 class RBM_Fit(BaseFit):
     '''Randomized Benchmarking Fit'''
