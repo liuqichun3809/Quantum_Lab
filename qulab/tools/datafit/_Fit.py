@@ -188,10 +188,14 @@ class S_Fit(BaseFit):
             alpha = 0
             delay = 0
             phi = 0
-            kappa_ext = abs(self.data[0][-1]-self.data[0][0])/10
-            kappa_int = kappa_ext
+            kappa = abs(self.data[0][-1]-self.data[0][0])/10
             f_c = abs(self.data[0][0]+self.data[0][-1])/2
-            p0 = [A,alpha,delay,phi,kappa_ext,kappa_int,f_c]
+            Q_l = f_c/kappa
+            if 'weak' in self.fit_tag:
+                Q_c = 4*Q_l
+            else:
+                Q_c = 1.5*Q_l
+            p0 = [A,alpha,delay,phi,Q_l,Q_c,f_c]
         self._Fitcurve(p0=p0)
         
         ## 相位拟合，获取准确初始相位alpha，延迟delay
@@ -200,24 +204,27 @@ class S_Fit(BaseFit):
             p0 = kw['p0']
         else:
             A = self._popt[0]
-            alpha = 0
+            alpha = np.unwrap(np.angle(self.data[1]))[0]
             delay = 0
             phi = self._popt[3]
-            kappa_ext = self._popt[4]
-            kappa_int = self._popt[5]
+            Q_l = self._popt[4]
+            Q_c = self._popt[5]
             f_c = self._popt[6]
-            p0 = [A,alpha,delay,phi,kappa_ext,kappa_int,f_c]
+            p0 = [A,alpha,delay,phi,Q_l,Q_c,f_c]
         self._Fitcurve_phase(p0=p0)
         
         ## 将线性标准化
         self.normalization()
     
+    
     ## 主体拟合
-    def _fitfunc(self,t,A,alpha,delay,phi,kappa_ext,kappa_int,f_c):
+    def _fitfunc(self,t,A,alpha,delay,phi,Q_l,Q_c,f_c):
+        delay = 0
+        alpha = 0
         if 'S11' in self.fit_tag:
-            S = A*np.exp(1j*alpha)*np.exp(-2*np.pi*1j*t*delay)*(1-(kappa_ext/(kappa_ext+kappa_int)*np.exp(1j*phi)/(1+2*1j*(f_c/(kappa_ext+kappa_int))*(t/f_c-1))))
+            S = A*np.exp(1j*alpha)*np.exp(-2*np.pi*1j*t*delay)*(1-(abs(Q_l)/abs(Q_c)*np.exp(1j*phi))/(1+2j*abs(Q_l)*(t/f_c-1)))
         else:
-            S = A*np.exp(1j*alpha)*np.exp(-2*np.pi*1j*t*delay)*(kappa_ext/(kappa_ext+kappa_int)*np.exp(1j*phi)/(1+2*1j*(f_c/(kappa_ext+kappa_int))*(t/f_c-1)))
+            S = A*np.exp(1j*alpha)*np.exp(-2*np.pi*1j*t*delay)*(abs(Q_l)/abs(Q_c)*np.exp(1j*phi))/(1+2j*abs(Q_l)*(t/f_c-1))
         return abs(S)
     
     def _Fitcurve(self, **kw):
@@ -229,11 +236,12 @@ class S_Fit(BaseFit):
         self._error = np.sqrt(np.diag(pcov))
     
     ## 相位拟合，获取准确初始相位alpha，延迟delay
-    def _fitfunc_phase(self,t,A,alpha,delay,phi,kappa_ext,kappa_int,f_c):
+    def _fitfunc_phase(self,t,A,alpha,delay,phi,Q_l,Q_c,f_c):
+        A = 1
         if 'S11' in self.fit_tag:
-            S = A*np.exp(1j*alpha)*np.exp(-2*np.pi*1j*t*delay)*(1-(kappa_ext/(kappa_ext+kappa_int)*np.exp(1j*phi)/(1+2*1j*(f_c/(kappa_ext+kappa_int))*(t/f_c-1))))
+            S = A*np.exp(1j*alpha)*np.exp(-2*np.pi*1j*t*delay)*(1-(abs(Q_l)/abs(Q_c)*np.exp(1j*phi))/(1+2j*abs(Q_l)*(t/f_c-1)))
         else:
-            S = A*np.exp(1j*alpha)*np.exp(-2*np.pi*1j*t*delay)*(kappa_ext/(kappa_ext+kappa_int)*np.exp(1j*phi)/(1+2*1j*(f_c/(kappa_ext+kappa_int))*(t/f_c-1)))
+            S = A*np.exp(1j*alpha)*np.exp(-2*np.pi*1j*t*delay)*(abs(Q_l)/abs(Q_c)*np.exp(1j*phi))/(1+2j*abs(Q_l)*(t/f_c-1))
         return np.unwrap(np.angle(S))
     
     def _Fitcurve_phase(self, **kw):
@@ -248,14 +256,28 @@ class S_Fit(BaseFit):
     def get_delay(self):
         f_para = self.data[0]
         S_para = self.data[1]
-        phase = np.unwrap(np.angle(S_para))
-        gradient, intercept, r_value, p_value, std_err = stats.linregress(abs(f_para),phase)
-        self.delay = gradient/(np.pi*2.)
+        length = len(f_para)
+        if 'weak' in self.fit_tag:
+            f_para = np.hstack([f_para[:int(length/5)],f_para[-int(length/5):]])
+            phase = np.unwrap(np.angle(S_para))
+            phase = np.hstack([phase[:int(length/5)],phase[-int(length/5):]])
+            gradient, intercept, r_value, p_value, std_err = stats.linregress(abs(f_para),phase)
+            self.delay = gradient/(np.pi*2.)
+        else:
+            phase = np.unwrap(np.angle(S_para))
+            gradient, intercept, r_value, p_value, std_err = stats.linregress(abs(f_para),phase)
+            self.delay = (gradient-(-np.pi*2./abs(f_para[-1]-f_para[0])))/(np.pi*2.)
         return self.delay
     
     ## 去除延时
     def cancel_delay(self):
-        self.data[1] = self.data[1]*np.exp(-2*1j*np.pi*(-self.delay)*self.data[0])
+        self.data[1] = self.data[1]*np.exp(2*1j*np.pi*(-self.delay)*self.data[0])
+        phase = np.unwrap(np.angle(self.data[1]))
+        self.data[1] = (np.cos(phase[0])-1j*np.sin(phase[0]))*self.data[1]
+        
+        phase = np.unwrap(np.angle(self.data[1]))
+        if abs(np.pi-phase[0])<np.pi/10:
+            self.data[1] = -self.data[1]
         return self.data
     
     ## 将线形标准化
@@ -263,11 +285,11 @@ class S_Fit(BaseFit):
         self.data[1] = self.data[1]/self._popt[0]*np.exp(-1j*self._popt_phase[1])*np.exp(2*np.pi*1j*self.data[0]*self._popt_phase[2])
         return self.data
     
-    def S_fit_result(self,t,A,alpha,delay,phi,kappa_ext,kappa_int,f_c):
+    def S_fit_result(self,t,A,alpha,delay,phi,Q_l,Q_c,f_c):
         if 'S11' in self.fit_tag:
-            S = A*np.exp(1j*alpha)*np.exp(-2*np.pi*1j*t*delay)*(1-(kappa_ext/(kappa_ext+kappa_int)*np.exp(1j*phi)/(1+2*1j*(f_c/(kappa_ext+kappa_int))*(t/f_c-1))))
+            S = A*np.exp(1j*alpha)*np.exp(-2*np.pi*1j*t*delay)*(1-(abs(Q_l)/abs(Q_c)*np.exp(1j*phi))/(1+2j*abs(Q_l)*(t/f_c-1)))
         else:
-            S = A*np.exp(1j*alpha)*np.exp(-2*np.pi*1j*t*delay)*(kappa_ext/(kappa_ext+kappa_int)*np.exp(1j*phi)/(1+2*1j*(f_c/(kappa_ext+kappa_int))*(t/f_c-1)))
+            S = A*np.exp(1j*alpha)*np.exp(-2*np.pi*1j*t*delay)*(abs(Q_l)/abs(Q_c)*np.exp(1j*phi))/(1+2j*abs(Q_l)*(t/f_c-1))
         return S
     
     def get_single_photon_limit(self,unit='dBm'):
@@ -356,16 +378,25 @@ class S_Fit(BaseFit):
         plt.text(0.5,0.15,'mis-match = '+str(round(self.params[3],3)),verticalalignment='center',horizontalalignment='center')
         plt.show()
         """
-
+        
     @property
     def error(self):
         '''standard deviation errors on the parameters '''
-        return [self._error[0],self._error_phase[1],self._error_phase[2],self._error[3],self._error[4],self._error[5],self._error[6]]
+        kappa_error = 2*self._popt[6]*self._error[4]/self._popt[4]**2
+        kappa_ext_error = 2*self._popt[6]*self._error[5]/self._popt[5]**2
+        kappa_int_error = abs(kappa_error - kappa_ext_error)
+        
+        return [self._error[0],self._error_phase[1],self._error_phase[2],self._error[3],kappa_ext_error,kappa_int_error,self._error[6]]
 
     @property
     def params(self):
         '''optimized parameters '''
-        return [self._popt[0]*self.A,self._popt_phase[1],self._popt_phase[2]+self.delay,self._popt[3],self._popt[4],self._popt[5],self._popt[6]]    
+        kappa = self._popt[6]/abs(self._popt[4])
+        kappa_ext = self._popt[6]/abs(self._popt[5])
+        kappa_ext_real = kappa_ext*np.cos(self._popt[3])
+        kappa_ext_imag = kappa_ext*np.sin(self._popt[3])
+        kappa_int = kappa - kappa_ext_real
+        return [self._popt[0]*self.A,self._popt_phase[1],self._popt_phase[2]+self.delay,self._popt[3],kappa_ext*np.exp(-1j*self._popt[3]),kappa_int,self._popt[6]]    
     
 
 class RBM_Fit(BaseFit):
