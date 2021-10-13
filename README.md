@@ -1,54 +1,56 @@
 # Quantum_Lab
-[https://github.com/liuqichun3809/Quantum_Lab]
+以 Python 语言实现对各种实验设备的控制，进行实验测试和数据采集，运行于 Jupyter Notebook。
 
-Quantum_Lab 继承于 QuLab[https://github.com/feihoo87/QuLab/]
+<sub>Quantum_Lab 继承自 [QuLab](https://github.com/feihoo87/QuLab/).</sub>
 
-## 功能：以Python语言实现对各种实验设备的控制，进行实验测试和数据采集，运行方式为jupyter notebook。
-
-## 软件信息：
-    1. 顶层为qulab项目和setup信息。
-    2. qulab包含：设备驱动配置模块drivers和device、用户工具模块tools、软件管理模块。
-    3. 软件的代码、数据存储管理、仪器配置、用户信息等通过MongoDB实现。
+## 软件信息
+1. 顶层为 qulab 项目和 setup 信息。
+2. qulab 包含：设备驱动配置模块 drivers 和 device、用户工具模块 tools、软件管理模块。
+3. 软件的代码、数据存储管理、仪器配置、用户信息等通过 MongoDB 实现。
 
 
-## 软件安装准备工作
-    1. Python安装：
-        从官网(https://www.python.org/) 下载安装，选择3.6以上版本，默认自带pip包管理工具，
-        安装完成后在命令窗口以‘pip --version’查看是否有pip包管理工具，
-        若无该管理工具，则可通过官网(https://pypi.org/project/pip/) 进行安装。
-    2. MongoDB安装：
-        从官网(https://www.mongodb.com/download-center/community) 选择对应操作系统的版本进行下载安装，
-        安装和配置过程请参考https://www.runoob.com/mongodb/mongodb-tutorial.html 教程。
-    3. Jupyter安装：
-        命令窗口中pip指令‘pip install jupyter’
-    4. Python工具包安装：
-        在程序运行中若缺失某种工具包，则在命令窗口通过‘pip install ***’进行安装，
-        由于一些工具包默认从境外的网站下载安装，速度较慢，可以采用镜像源，
-        安装命令为‘pip install -i https://pypi.tuna.tsinghua.edu.cn/simple ***’，
-        其中‘***’为需要安装的工具包名称。
-        windows系统下，用pip安装工具包出现“microsoft visual c++ 14.0 is required"错误时，
-        可以手动去”https://www.lfd.uci.edu/~gohlke/pythonlibs/#wordcloud" 下载要安装的工具包到本地，
-        然后在pip安装下载好的本地工具包
-    5. git工具安装：
-        若系统未安装git，则可以按照“https://www.git-scm.com/book/en/v2/Getting-Started-Install-Git" 的说明,
-        选择对应系统进行安装。
-    6. Quantum_Lab安装：
-        1）$ cd /*/*/*（其中‘/*/*/*’为准备安装Quantum_Lab的路径）
-        2）$ git clone https://github.com/liuqichun3809/Quantum_Lab.git
-        3）$ cd Quantum_Lab
-        4）$ pip install .
-        若对Quantum_Lab内的代码进行了修改，则需要从新执行第3）和4）步，修改才能生效。
-    7. 制作 ssl 证书，用于 InstrumentServer 加密，参考'create_config_yaml.md'文件。
-    8. 创建配置文件 `config.yaml`，若使用 Windows 系统，将其置于`%ProgramData%\QuLab\`路径下，
-       参考'create_config_yaml.md'文件。
+## 安装和配置
+1. 运行环境安装
+    - Python 
+
+      从[官网](https://www.python.org/)下载安装。
+      <!-- 检查是否有包管理器。 -->
+
+    - Jupyter System
+
+      命令窗口中 pip 指令 `python -m pip install jupyter`。
+      如果用户位置为中国大陆，可以采用镜像源，在指令中加入 `python -m pip install -i https://pypi.tuna.tsinghua.edu.cn/simple jupyter`。
+
+    - Git
+
+      若系统未安装 git，则可以按照[说明](https://www.git-scm.com/book/en/v2/Getting-Started-Install-Git)，选择对应系统进行安装。
+
+2. MongoDB (Community Edition)
+
+    安装和配置过程请参考[教程](https://docs.mongodb.com/manual/administration/install-community/)。
+
+3. Quantum_Lab 安装
+```
+    1）$ cd /*/*/*（其中‘/*/*/*’为准备安装Quantum_Lab的路径）
+    2）$ git clone https://github.com/liuqichun3809/Quantum_Lab.git
+    3）$ cd Quantum_Lab
+    4）$ pip install .
+    若对Quantum_Lab内的代码进行了修改，则需要从新执行第3）和4）步，修改才能生效。
+```
+
+## SSL 证书配置
+- 制作 ssl 证书，用于 InstrumentServer 加密，参考'create_config_yaml.md'文件。
+
+- 创建配置文件 `config.yaml`，若使用 Windows 系统，将其置于`%ProgramData%\QuLab\`路径下，
+   参考'create_config_yaml.md'文件。
 
 
-## 软件运行前MongoDB启动准备
-    1. $ cd /usr/local/mongodb/bin（若不是该路径，则改为对应mongodb安装的路径）
-    2. $ sudo ./mongod
-       此操作为开启MongoDB的服务端口，若未开启该服务端口，则Quantum_Lab程序无法进行代码和数据管理，从而无法使用。
-       若要通过命令窗口查看MongoDB数据库，则进入到/usr/local/mongodb/bin，然后执行‘mongo’指令。
-    3. 也可以将路劲添加到系统环境变量path里，然后在任意路劲下直接运行 $ mongod即可。
+## 运行前 MongoDB 启动准备
+1. `$ cd /usr/local/mongodb/bin`（若不是该路径，则改为对应mongodb安装的路径）
+2. `$ sudo ./mongod`
+   此操作为开启MongoDB的服务端口，若未开启该服务端口，则Quantum_Lab程序无法进行代码和数据管理，从而无法使用。
+   若要通过命令窗口查看MongoDB数据库，则进入到/usr/local/mongodb/bin，然后执行‘mongo’指令。
+3. 也可以将路劲添加到系统环境变量path里，然后在任意路劲下直接运行 $ mongod即可。
 
 
 ## 使用
@@ -103,7 +105,7 @@ TestApp.save(package='test')
 import qulab
 import numpy as np
 
-app = lab.make_app('TestApp', package='test').sweep([
+app = qulab.make_app('TestApp', package='test').sweep([
     ('x', np.linspace(0, 1, 11))
 ])
 qulab.make_figure_for_app(app)
@@ -117,7 +119,7 @@ import numpy as np
 import asyncio
 import qulab
 
-class ComplexApp(lab.Application):
+class ComplexApp(qulab.Application):
     '''一个复杂点的 App'''
     async def work(self):
         async for y in self.sweep['y']:
