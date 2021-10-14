@@ -77,7 +77,7 @@ __login_info = dict(username='', password='', user=None)
 
 @require_db_connection
 def login(username=None, password='', relogin=False):
-    # if aready login
+    # if aready logged in
     if __login_info['user'] is not None and not relogin:
         return
     if username is None:

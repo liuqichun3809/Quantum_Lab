@@ -7,6 +7,8 @@ import pymongo
 
 
 def getRegisterInfo():
+    """Request the registration information.
+    """
     username = input('User Name > ')
     password = getpass.getpass(prompt='Password > ')
     password2 = getpass.getpass(prompt='Repeat Password > ')
@@ -20,6 +22,8 @@ def getRegisterInfo():
 
 @_bootstrap.require_db_connection
 def register():
+    """Save registration information to the database.
+    """
     username, password, email, fullname = getRegisterInfo()
     user = db.update.newUser(name=username, email=email, fullname=fullname)
     user.password = password
@@ -39,7 +43,7 @@ def setInstrument(name, host, address, driver):
 
 def set_database(database):
     db_list = get_database()
-    print('The following databases are already exist:')
+    print('The following databases already exist:')
     print(db_list)
     recent_db = config['db']['db']
     if config['db']['db'] != database:
@@ -48,54 +52,64 @@ def set_database(database):
         with open(yamlpath, 'w', encoding='utf-8') as f:
             yaml.dump(config, f, Dumper=yaml.RoundTripDumper)
         if database in db_list:
-            print('You have switch from database "%s" to "%s", please restart this jupyter server to use it.' % (recent_db, database))
+            print(f'You have switch from database {recent_db} to {database}.'
+                  'Please restart this Jupyter kernel to load it.')
         else:
-            print('You have created a new database "%s", please restart this jupyter server to use it.' % database)
+            print(f'You have created a new database {database}. '
+                  'Please restart this Jupyter kernel to load it.')
     else:
-        print('Your recent selected database already is "%s".' % database)
-        
+        print(f'The database is already {database}".')
+
+
 def get_database():
     myclient = pymongo.MongoClient('mongodb://localhost:27017')
-    print('The recent database is "%s".' % config['db']['db'])
+    print('The most recent database is {}.'.format(config['db']['db']))
     return myclient.database_names()
 
-def drop_collection(database=None, collection=['',]):
-    # drop collection=['',] in database, 
-    # if database is None, collection=['',] in recent database will be drop
+
+def drop_collection(database=None, collection=['']):
+    # drop collection=[''] in database,
+    # if database is None, collection=[''] in recent database will be dropped
     myclient = pymongo.MongoClient('mongodb://localhost:27017')
     recent_db = config['db']['db']
     if database is None or database == recent_db:
         mydb = myclient[recent_db]
-        print('You are going to drop the collection "%s" in recent database "%s".' % (collection, recent_db))
-        print('Type in "y" to continue, or anyother words to quit.')
+        print(
+            f'You are going to drop the collection {collection} in database {recent_db}.'
+        )
+        print('Type in "yes" to continue, other words to quit.')
         ConfirmInfo = getConfirmInfo()
-        if ConfirmInfo == 'y':
+        if ConfirmInfo == 'yes':
             col_list = mydb.list_collection_names()
             for col in collection:
                 if col in col_list:
                     mydb[col].drop()
-                    print('Collection "%s" drop successfully.' % col)
+                    print(f'Collection {col} drop successfully.')
                 else:
-                    print('Collection "%s" drop failed, it is not exist.' % col)
+                    print(f'Collection {col} failed to drop, it does not exist.')
     elif database in myclient.database_names():
         mydb = myclient[database]
-        print('You are using database "%s", but going to drop collections in database "%s".' % (recent_db, database))
-        print('Type in "y" to continue, or anyother words to quit.')
+        print(
+                f'You are using database {recent_db}, but the collection to drop is in database {database}.'
+        )
+        print('Type in "yes" to continue, other words to quit.')
         ConfirmInfo = getConfirmInfo()
-        if ConfirmInfo == 'y':
+        if ConfirmInfo == 'yes':
             col_list = mydb.list_collection_names()
             for col in collection:
                 if col in col_list:
                     mydb[col].drop()
-                    print('Collection "%s" drop successfully.' % col)
+                    print(f'Collection {col} dropped successfully.')
                 else:
-                    print('Collection "%s" drop failed, it is not exist.' % col)
+                    print('Collection {col} not found.')
     else:
-        print('The database is not exist, collections drop failed.')
-        
+        print('The database does not exist, collections failed to drop.')
+
+
 def getConfirmInfo():
     ConfirmInfo = input('Your choice > ')
     return ConfirmInfo
+
 
 def get_collection_info(database=None):
     # get the whole collections in (recent) database
@@ -106,8 +120,8 @@ def get_collection_info(database=None):
     if database in myclient.database_names():
         mydb = myclient[recent_db]
         col_list = mydb.list_collection_names()
-        print('The database "%s" has following collections: "%s"' % (database, col_list))
+        print(f'The database {database} has following collections: {col_list}')
         return col_list
     else:
-        print('Dstabase "%s" is not exist.' % database)
+        print(f'Database {database} does not exist.')
         return None
