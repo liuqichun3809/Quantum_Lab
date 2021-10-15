@@ -75,11 +75,11 @@ def drop_collection(database=None, collection=['']):
     if database is None or database == recent_db:
         mydb = myclient[recent_db]
         print(
-            f'You are going to drop the collection {collection} in database {recent_db}.'
+            f'Drop the collection {collection} in database {recent_db} (y/[n])?'
         )
-        print('Type in "yes" to continue, other words to quit.')
         ConfirmInfo = getConfirmInfo()
-        if ConfirmInfo == 'yes':
+        if ConfirmInfo == 'y':
+            print('Drop off confirmed')
             col_list = mydb.list_collection_names()
             for col in collection:
                 if col in col_list:
@@ -90,11 +90,12 @@ def drop_collection(database=None, collection=['']):
     elif database in myclient.database_names():
         mydb = myclient[database]
         print(
-                f'You are using database {recent_db}, but the collection to drop is in database {database}.'
+                f'The current database is {recent_db}, but the collection given is in database {database}.'
         )
-        print('Type in "yes" to continue, other words to quit.')
+        print('Are you sure (y/[n])?')
         ConfirmInfo = getConfirmInfo()
-        if ConfirmInfo == 'yes':
+        if ConfirmInfo == 'y':
+            print('Drop off confirmed')
             col_list = mydb.list_collection_names()
             for col in collection:
                 if col in col_list:
@@ -106,8 +107,8 @@ def drop_collection(database=None, collection=['']):
         print('The database does not exist, collections failed to drop.')
 
 
-def getConfirmInfo():
-    ConfirmInfo = input('Your choice > ')
+def getConfirmInfo() -> str:
+    ConfirmInfo = str(input('Your choice > '))
     return ConfirmInfo
 
 

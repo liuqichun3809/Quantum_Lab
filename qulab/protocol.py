@@ -5,6 +5,7 @@ import json
 
 DEFAULT_PORT = 8123
 
+
 class Transport():
     def __init__(self, protocol=pickle.HIGHEST_PROTOCOL):
         self.protocol = protocol
@@ -18,9 +19,7 @@ class Transport():
         return pickle.loads(buff)
 
     def encode(self, obj):
-        data = {
-            'body': self.pack(obj)
-        }
+        data = {'body': self.pack(obj)}
         return json.dumps(data)
 
     def decode(self, s):
